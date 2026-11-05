@@ -107,7 +107,7 @@ monospace accents is evidence of the incumbent look, not a commitment.
   testimonials, trust band, interactive pricing slider, EU/GDPR claims)
   and `root/views.py` (`BRANDS`, `TESTIMONIALS` placeholder data).
 - Legal pages: `legal/docs/` (imprint, privacy, terms).
-- Architecture documentation: `README.md`; conventions: `CONVENTIONS.md`.
+- Architecture documentation: `README.md`. Conventions: `AGENTS.md`.
 - Test data bundle: `fixtures/initial_data.yaml`.
 - No testimonials, case studies, customer logos, benchmarks, or press exist
   beyond the owner-attested brand-banner endorsements (Henkel, Porsche,

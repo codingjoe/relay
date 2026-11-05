@@ -1,1 +1,1 @@
-../REVIEW.md
+../AGENTS.md

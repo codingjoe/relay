@@ -1,208 +1,119 @@
 # Agent Instructions
 
-## Project overview
+## Dependencies
 
-relay is a B2B SaaS communication platform (email, VoIP, and more). Its
-differentiator is simplicity: relay handles the DNS and email plumbing, so
-sending and receiving work with near-zero configuration. A built-in
-authoritative nameserver delivers this: users only set NS delegation and
-DMARC, and relay serves MX, SPF, DKIM, Return-Path, MTA-STS, and TLS-RPT
-automatically. GitHub OAuth handles authentication.
-
-## Architecture & tech stack
-
-Four services from one codebase, each a separate container. Production runs
-them on a single-node Talos Linux cluster in the `default` namespace: the
-manifests are in `deploy/k8s/`, and `deploy/README.md` holds the deployment
-checklist.
-
-- **Web**: Django web UI + admin (Granian ASGI in production, `runserver` in development).
-- **DNS**: Authoritative nameserver (dnslib, UDP+TCP). `domains/resolver.py`
-  builds DNS records from `Domain` model properties. No zone files.
-- **MSA**: Outgoing mail submissions (aiosmtpd). `msa/handlers.py`
-  authenticates via `MsaCredential`, stores the raw body as a `FileField`,
-  and dispatches delivery via the Django task framework. Incoming (MTA)
-  mail is handled by the `mta` app.
-
-Apps: `root` (settings, root URLs, base templates. No cross-app model
-imports), `accounts` (Organization, Membership, abstract Credential, OAuth,
-org CRUD), `domains` (Domain, DNS resolver/server/services, domain
-views), `kms` (SigningKey, Fernet ciphertext, public/private keypair
-generation, signing. No app-specific knowledge), `msa` (OutgoingMessage, Transmission, MsaCredential, delivery
-task, handler/server, message + credential views), `mta` (IncomingMessage, Webhook,
-WebhookDelivery, TlsReport, TlsFailure, MX server, webhook dispatch, MTA-STS),
-`services.mcp` (MCP server app: FastMCP ASGI entrypoint, OAuth consent,
-explicit tool binding, user-bound OAuth connections that read every
-organization the member is active in),
-`services.email.dashboard` (the unified
-transactional-email dashboard), `legal` (Markdown legal pages), `captains_log`
-(Markdown product updates from `product/updates`, and their scheduled
-announcement mail), `abstract`
-(shared TimeStamped model, admin mixins, Markdown utils).
-
-App dependencies flow in one direction: apps must not import from their
-dependents. The graph is enforced by import-linter; the authoritative
-contracts live in `pyproject.toml` (`[tool.importlinter]`). Run
-`lint-imports` to check them. When a refactor changes the graph, update
-the contracts.
-
-Key tech: Django task framework, PostgreSQL 18+ (uses `uuidv7()`), Redis, S3
-via django-storages, django-allauth for the GitHub login and the MCP OIDC
-provider, basecoat CSS (via PostCSS with wireit), Talos Linux on Hetzner
-Cloud with Caddy as ingress and Layer 4 proxy.
+Apps must not import their dependents. The contracts live in
+`pyproject.toml` (`[tool.importlinter]`). Run `lint-imports` after changing
+the graph.
 
 ## Core commands & workflows
 
-- `uv sync`. Install dependencies. **Use `uv` only**, never `pip`.
-- `pnpm install`. Install Node.js dependencies (Tailwind, basecoat, PostCSS, wireit, ESM modules).
-- `pnpm run build`. Compile CSS via PostCSS (`src/css/app.css` → `root/static/css/app.css`) and vendor ES modules into `staticfiles/esm` with esimport.
-- `pnpm run dev`. Watch and rebuild CSS and ES modules on change.
-- `uv run python manage.py check`: Django system checks.
+- `uv sync`. Install dependencies. Use `uv` only, never `pip`.
+- `pnpm install`. Install Node.js dependencies.
+- `pnpm run build`. Compile CSS and vendor ES modules.
+- `pnpm run dev`. Watch and rebuild CSS and ES modules.
+- `uv run python manage.py check`. Django checks.
 - `uv run python manage.py makemigrations`. Generate migrations.
 - `uv run python manage.py migrate`. Apply migrations.
 - `uv run python manage.py runserver`. Dev web server.
-- `uv run python manage.py dns`. Start DNS server.
-- `uv run python manage.py msa`. Start MSA (SMTP submission) server.
-- `uv run python manage.py mta`. Start MTA (MX receiving) server.
-- `prek run --all-files`. Lint/format (ruff, djangofmt, pyupgrade, mdformat,
-  dockerfmt). (automatically executed when committing)
+- `uv run python manage.py dns`. Start DNS.
+- `uv run python manage.py msa`. Start MSA.
+- `uv run python manage.py mta`. Start MTA.
+- `prek run --all-files`. Lint and format.
 - `uv run ruff check --fix . && uv run ruff format .`. Ruff only.
-- `deploy/minikube`. Run the full stack on minikube with `.env`. See
-  `README.md`.
-
-Production deployment, all driven by `.github/workflows/deploy.yml`:
-
-- `kubectl apply -k deploy/k8s`. Apply the whole stack.
-- `kubectl rollout status deployment/<name>`. Watch one workload.
-- `kubectl logs deployment/<name>`. Read a service's logs.
-- `kubectl exec postgres-0 -- psql -U postgres`. Reach the database.
-
-`kubectl` needs a kubeconfig for the cluster. The provisioning step publishes
-one as the `KUBECONFIG` secret; on your machine, the admin kubeconfig is
-`deploy/.state/talos/kubeconfig`, and `talosctl kubeconfig --force --merge=false <path>` re-issues it from the node. See `deploy/README.md`.
+- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput --no-esm`.
+  Must run before Django checks and template tests.
 
 ## Rules, constraints & safety
 
-- **Never read or expose `.env`, `.env.production`, or secrets.** These files
-  contain real OAuth secrets, DB passwords, and Redis passwords.
-- **Use `uv` exclusively** for dependency management. Never `pip install`.
-- **PostgreSQL 18+ required**: `db_default` uses the `uuidv7()` function.
-  Linting/formatting via pre-commit is the current quality gate.
-- **Update `CONVENTIONS.md`** when a reviewer identifies a new convention or
-  corrects a pattern. This file is the authoritative coding-conventions source.
-- **Update `docs/docs/`** when a change alters documented behavior (sending,
-  receiving, DNS, webhooks, message statuses, hosting, security, privacy).
-  The user-facing docs describe how relay works and must not fall behind the code.
-- **Extend `.relint.yml`** when a convention can be enforced by regex. Move
-  enforced rules out of `CONVENTIONS.md`: `CONVENTIONS.md` documents for
-  humans, `.relint.yml` enforces for machines.
-- **Label every issue you file with the superJoe vocabulary**, one lane and one
-  tag, the two halves of a finding line, `<tag>: <lane> <what>.` Lanes: `sec`,
-  `bug`, `perf`, `naming`, `bloat`, `doc`, `test`, `deps`. Tags: `side quest`,
-  `sus`, `real`, `cap`, `receipts`, `yeet`, `duh`, `NPC`, `cringe`, `glow up`,
-  `ghost`, `delulu`, `kept`, `dropped`. Reuse these labels and the colors they
-  carry; do not invent new ones. Feature requests keep `enhancement`, and
-  Dependabot's own labels stay spelled the way the bot writes them. Each label's
-  description on GitHub says what it means.
-- **Do not run tests or pre-commit unless explicitly requested.** Never run any
-  test or pre-commit lint run unless the user asks for it. Running `uv run python manage.py check`
-  and `uv run python manage.py makemigrations --check --dry-run` is still fine
-  as part of finishing a change.
-- **Follow `CONVENTIONS.md`** for all coding patterns (URLs, PKs, fields,
-  control flow, imports, naming).
+- **Never read or expose `.env`, `.env.production`, or secrets.**
+- **Use `uv` only.** Never `pip install`.
+- **PostgreSQL 18+ is required.** `db_default` uses `uuidv7()`.
+- **Update the relevant `AGENTS.md`** when a reviewer identifies a convention.
+- **Update `docs/docs/`** when behavior changes.
+- **Label every issue** with one lane and one tag, `<tag>: <lane> <what>.`
+  Lanes: `sec`, `bug`, `perf`, `naming`, `bloat`, `doc`, `test`, `deps`.
+  Tags: `side quest`, `sus`, `real`, `cap`, `receipts`, `yeet`, `duh`, `NPC`,
+  `cringe`, `glow up`, `ghost`, `delulu`, `kept`, `dropped`.
+- **Do not run tests or pre-commit unless asked.** `manage.py check` and
+  `makemigrations --check --dry-run` are fine.
+- **Review against the `AGENTS.md` files** and the import-linter contracts.
+
+## URLs
+
+- Use the `app:model-CRUD` naming pattern with hyphens, for example
+  `org-list`, `org-detail`, `message-list`.
+- Use nested `include()` for cascaded paths. CRUD actions on objects do not
+  end with a trailing slash. List and create views can.
+- Reference URLs by name, never by hardcoded path. Use `reverse()`,
+  `redirect()`, and `{% url %}`.
+- Use `{% querystring %}` for filtered pagination. Never build query strings
+  by hand.
+
+## Tasks
+
+- Declare the queue on the task: `@task(queue_name="...")`.
+- Return `None`. Backends serialize the return value, so a model or `UUID`
+  records a failed run for work that succeeded.
+- Retry with `threadmill.retry.ExponentialBackoff`. Finalize non-final states
+  in the retry callback.
+- Name `AcknowledgementTimeout` in `expected_exceptions` when a task may run
+  again after its worker died.
+- Add new queues to `TASK_QUEUES` in `root/settings.py` and to the worker
+  commands in `deploy/k8s/web.yaml`. Mail pipeline queues go before `default`.
+
+## Test conventions
+
+- Use `pytest.mark.django_db` (not the `db` fixture) when a test needs the
+  database. Tests without the database carry no marker.
+- Prefer unit tests. Test model methods and utility functions without the DB.
+- CRUD view tests use the pytest-django `client` fixture and
+  `client.force_login(user)`.
+- Name unit tests `test_fn__suffix`. Name view tests
+  `test_get__suffix` / `test_post__suffix`.
+- One test per scenario. A test asserts behavior this codebase owns, not a
+  framework default.
+- Use plain `class TestSomething:` with no decorator unless a class-level
+  `@pytest.mark.django_db` is needed.
+- Avoid mocking unless the code performs external I/O. Prefer real objects
+  and real database state. Use `pytest.mark.asyncio` for async tests.
+
+## App structure
+
+- A concrete model shared between sibling apps belongs in a dedicated app,
+  not in `abstract`. `abstract` stays non-materialized.
+- The shared app owns the merged list views and the template-tag library.
+  Siblings keep their own detail views.
+- Place merged views in the parent app that depends on all siblings. Siblings
+  must not import each other.
 
 ## Quality, testing & definition of done
 
-Before you finish, always:
+Before you finish:
 
-- Run `uv run python manage.py check`. Must pass with zero issues.
-- Do not run pre-commit or the test suite unless the user explicitly requests
-  it. `uv run python manage.py check` and `uv run python manage.py makemigrations --check --dry-run` can still be run.
-- Run `uv run python manage.py makemigrations --check --dry-run`. Verify no
-  missing migrations for model changes.
-- Verify that URL reversals work for any changed or added routes.
-- Update `CONVENTIONS.md` if a review introduces a new convention.
-- Update `docs/docs/` when the change touches documented behavior
-  (sending, receiving, DNS, webhooks, statuses, hosting, privacy, reliability).
-- Follow the `naming-things` guidelines:
+- Run `uv run python manage.py check`. Zero issues.
+- Run `uv run python manage.py makemigrations --check --dry-run`.
+- Verify URL reversals for changed or added routes.
+- Follow the naming-things guidelines:
   `curl -sSL https://raw.githubusercontent.com/codingjoe/naming-things/refs/heads/main/README.md | cat`
-
-## Running tests
-
-Do not run any of the commands below unless the user explicitly requests
-testing or linting.
-
-- `pnpm install && pnpm run build && uv run python manage.py collectstatic --noinput --no-esm`
-  must run in advance; the Django checks and templates tests fail without it.
-  ES modules are vendored by `pnpm run build`, so collectstatic must skip the
-  esimport step (`--no-esm`).
-- Nothing is measured by default.
 
 ## Browser automation
 
-Playwright MCP (`.mcp.json`) runs headless and writes screenshots to
-`.playwright-mcp/`. The dev server binds to a random localhost port. Read
-it from the `runserver` output, then navigate to `http://localhost:<port>`.
+Use Playwright MCP headless. Write screenshots to `.playwright-mcp/`.
+Read the dev server port from the `runserver` output.
 
 Disable the browser cache before capturing screenshots
-(`Network.setCacheDisabled` via CDP). Conditional-get views answer
-revalidations with `304`, so the browser would otherwise reuse stale
-HTML that still contains the debug toolbar.
+(`Network.setCacheDisabled` via CDP). Conditional GETs answer `304`, so the
+browser would otherwise reuse stale HTML with the debug toolbar.
 
-Refresh the homepage screenshots (`root/static/img/email-*-{light,dark}.png`)
-from the message log and a message detail at a 1182x788 viewport with
-device scale factor 1. The fixture ages out: its message timestamps sit
-far in the past, so shift them forward before capturing or the message
-log's 30-day chart renders empty.
-
-## Test data
-
-Bundle: one user (`test`, password `test`), one org (`acme`), five domains,
-one SMTP credential, two SigningKeys, and a month of message traffic: 256
-messages with 375 transmissions and 17 spam checks, spread over
-2026-09-04 to 2026-10-04 so the dashboard charts and the message log have
-data instead of a single row. Load with
-`manage.py loaddata fixtures/initial_data.yaml`. Refresh with:
-
-1. Wipe the database and re-apply migrations:
-   `rm -f db.sqlite3 && uv run python manage.py migrate`
-2. Update the YAML fixture and any binary message files it references.
-   The fixture is plain YAML. Edit it directly. `auth.permission`
-   rows are auto-generated by `post_migrate` and are not part of the
-   fixture. `kms.signingkey` rows are created by the data migration
-   `message.0002_signing_keys`, which generates Fernet-encrypted
-   material using the local KMS key (hand-written fixture data cannot
-   be portable across Fernet keys. See
-   [How to provide initial data for models](https://docs.djangoproject.com/en/6.0/howto/initial-data/)).
-3. Validate that the YAML is well-formed via the `yamlfmt`
-   pre-commit hook.
-
-The `test` user is a superuser, so the Django admin works out of the
-box in development. Only a `write` membership in `acme`, so product
-pages still render with a regular member's permissions. The dev server
-authenticates via the `RemoteUserBackend` middleware when `DEBUG=True`,
-so the bundle developer signs in without a password.
-
-## Pointers to further documentation
-
-- `CONVENTIONS.md`. Authoritative coding conventions (URLs, PKs, model fields,
-  save patterns, control flow, imports, naming).
-- `README.md`. Setup guide, architecture overview, app dependency graph,
-  free sender domain docs.
-- `REVIEW.md`. The reviewer's standing rules (conventions, dependency
-  direction). `CLAUDE.md` and `.github/copilot-instructions.md` symlink to it.
-- `root/settings.py`. All platform config and environment variables.
-- `docs/docs/`. User-facing product documentation, served at `/docs/`.
-- `legal/docs/`. Legal page Markdown sources (imprint, privacy, terms).
+Refresh homepage screenshots (`root/static/img/email-*-{light,dark}.png`)
+from the message log and a message detail at 1182x788, device scale factor 1.
+Shift fixture timestamps forward first, or the 30-day chart renders empty.
 
 ## Examples
 
 **Good:** Add a field to `OutgoingMessage` with `verbose_name` and `help_text`.
-Then do the following steps:
+Generate a migration. Run `manage.py check` and `makemigrations --check`.
 
-1. Generate a migration.
-2. Run `manage.py check` and `makemigrations --check`.
-3. Verify that `CONVENTIONS.md` does not need an update.
-
-**Bad:** Import a model from `domains` in `root/views.py`, use `pip install`
-for a dependency, or save a model without `update_fields=`.
+**Bad:** Import a `domains` model in `root/views.py`, use `pip install`, or
+save without `update_fields=`.
