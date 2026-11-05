@@ -2,11 +2,21 @@
 {% load abstract i18n %}
 {% block title %}{% translate "inbound email"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-start justify-between gap-2 mb-6">
+  <header class="flex flex-wrap items-start justify-between gap-2 mb-6">
     <div>
-      <div class="flex items-center gap-1">
+      <div class="flex flex-wrap items-center gap-2">
         <h2 class="m-0">{% translate "inbound email"|capfirst %}</h2>
-        {% include "abstract/copy_button.html" with target="webhook-instructions" size="icon-xs" tooltip=_("copy AI coding agent instructions")|capfirst label=_("copy AI coding agent instructions")|capfirst %}
+        <button
+          type="button"
+          class="btn"
+          data-variant="secondary"
+          data-size="sm"
+          data-copy-target="webhook-instructions"
+          data-tooltip='{% translate "copy AI coding agent instructions"|capfirst %}'
+        >
+          {% tabler name="copy" size="3.5" %}
+          {% translate "copy instructions"|capfirst %}
+        </button>
       </div>
       <p class="m-0 mt-1 text-sm text-muted-foreground">
         {% blocktranslate trimmed %}

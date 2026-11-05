@@ -1,12 +1,11 @@
 {% load abstract %}
 {# Buttons inside an `.input-group` pass size="icon-xs"; the default fits standalone rows. #}
-{# Pass `value` for inline text or `target` for the id of an element to copy. #}
 <button
   type="button"
   class="btn"
   data-variant="ghost"
   data-size="{% firstof size 'icon' %}"
-  {% if target %}data-copy-target="{{ target }}"{% else %}data-copy="{{ value }}"{% endif %}
+  data-copy="{{ value }}"
   {% if tooltip %}data-tooltip="{{ tooltip }}"{% endif %}
   aria-label="{{ label }}"
 >
