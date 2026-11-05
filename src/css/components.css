@@ -39,6 +39,34 @@
   --status-color: var(--color-destructive);
 }
 
+/* Basecoat's toast category only picks the icon. Tint the toast and its
+   icon here so the four categories read as success, info, warning, and
+   error, matching the badge and card status tints. */
+.toast[data-category="success"] {
+  --status-color: var(--color-success);
+}
+
+.toast[data-category="info"] {
+  --status-color: var(--color-link);
+}
+
+.toast[data-category="warning"] {
+  --status-color: var(--color-warning);
+}
+
+.toast[data-category="error"] {
+  --status-color: var(--color-destructive);
+}
+
+.toast[data-category] .toast-content {
+  border-color: color-mix(in srgb, var(--status-color) 30%, var(--color-border));
+  background-color: color-mix(in srgb, var(--status-color) 10%, var(--color-popover));
+}
+
+.toast[data-category] .toast-content > svg {
+  color: var(--status-color);
+}
+
 .card[data-variant] {
   background-color: color-mix(in srgb, var(--status-color, transparent) 10%, transparent);
 }
