@@ -22,7 +22,7 @@ class TestDomainAdmin:
 
     @pytest.mark.django_db
     def test_domain_admin__changelist_search_by_org_slug(self, client, admin_user, org):
-        Domain.objects.create(name="example.com", org=org)
+        domain = Domain.objects.create(name="example.com", org=org)
         client.force_login(admin_user)
 
         response = client.get(
@@ -31,4 +31,4 @@ class TestDomainAdmin:
         )
 
         assert response.status_code == 200
-        assert "example.com" in response.content.decode()
+        assert domain in response.context["cl"].result_list
