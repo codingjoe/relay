@@ -116,7 +116,7 @@ document.addEventListener("click", (event) => {
     event.target.hasAttribute("data-select")
   ) {
     event.target.select();
-    copyText(event.target.value);
+    copyText(event.target.dataset.copyValue ?? event.target.value);
   }
 });
 

@@ -1,11 +1,10 @@
 {% load abstract %}
 <span data-align="start">{{ record_type }}</span>
 <input
-  class="record-input max-sm:basis-[calc(100%-2.75rem)] text-right"
+  class="record-input"
   type="text"
   readonly
-  value="{{ record_name|relative_record_name:domain }}"
+  value="{{ record_name }}"
   data-select
+  data-copy-value="{{ record_name|relative_record_name:domain }}"
 >
-<span class="select-none ps-1 text-sm text-muted-foreground empty:hidden">{{ record_name|apex_suffix:domain }}</span>
-{% tabler name="arrow-right" size="3.5" class="mx-1 shrink-0 text-muted-foreground" %}

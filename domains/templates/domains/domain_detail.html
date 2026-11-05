@@ -50,10 +50,7 @@
       <div role="group" class="field">
         {% include "domains/_check_status.html" with status=domain.nameserver_status error=domain.nameserver_error label="NS" %}
         {% for ns in nameservers %}
-          <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-            {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
-            {% include "domains/_record_value.html" with record_value=ns %}
-          </div>
+          {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns %}
         {% endfor %}
       </div>
     </section>
@@ -122,10 +119,7 @@
             <p class="text-sm text-muted-foreground">
               {% translate "authorizes our mail servers to send on behalf of your domain."|capfirst %}
             </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.name %}
-              {% include "domains/_record_value.html" with record_value=domain.root_spf_record quote=True %}
-            </div>
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.name record_value=domain.root_spf_record quote=True %}
           </div>
 
           <div role="group" class="field">
@@ -133,10 +127,7 @@
             <p class="text-sm text-muted-foreground">
               {% translate "signs outbound email with the RSA-2048 key."|capfirst %}
             </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 %}
-              {% include "domains/_record_value.html" with record_value=dkim_cnames.dkim_rsa2048.1 %}
-            </div>
+            {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 record_value=dkim_cnames.dkim_rsa2048.1 %}
           </div>
 
           <div class="flex flex-col gap-4 border-t border-border pt-4">
@@ -151,10 +142,7 @@
               <p class="text-sm text-muted-foreground">
                 {% translate "adds an Ed25519 signature to outbound email. Relay signs with both keys."|capfirst %}
               </p>
-              <div class="input-group flex-wrap max-sm:h-auto">
-                {% include "domains/_record_name.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 %}
-                {% include "domains/_record_value.html" with record_value=dkim_cnames.dkim_ed25519.1 %}
-              </div>
+              {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 record_value=dkim_cnames.dkim_ed25519.1 %}
             </div>
           </div>
         </div>
@@ -181,17 +169,7 @@
               {% translate "routes incoming email for this domain to relay."|capfirst %}
             </p>
             {% for mx_hostname in mx_hostnames %}
-              <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-                {% include "domains/_record_name.html" with record_type="MX" record_name=domain.name %}
-                <input
-                  class="basis-12 flex-none"
-                  type="text"
-                  readonly
-                  value="{{ mx_priority }}"
-                  data-select
-                >
-                {% include "domains/_record_value.html" with record_value=mx_hostname %}
-              </div>
+              {% include "domains/_record_row.html" with record_type="MX" record_name=domain.name priority=mx_priority record_value=mx_hostname %}
             {% endfor %}
           </div>
         </div>
@@ -219,10 +197,7 @@
             <p class="text-sm text-muted-foreground">
               {% translate "Email authentication policy with relay reporting addresses. Relaxed alignment covers subdomains." %}
             </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.dmarc_record_name %}
-              {% include "domains/_record_value.html" with record_value=domain.dmarc_record quote=True %}
-            </div>
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.dmarc_record_name record_value=domain.dmarc_record quote=True %}
           </div>
 
           <div role="group" class="field">
@@ -230,14 +205,8 @@
             <p class="text-sm text-muted-foreground">
               {% translate "Enforce TLS for incoming mail. Add the TXT record and the CNAME record at your DNS provider." %}
             </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.mta_sts_record_name %}
-              {% include "domains/_record_value.html" with record_value=domain.mta_sts_record quote=True %}
-            </div>
-            <div class="input-group flex-wrap max-sm:h-auto mt-2">
-              {% include "domains/_record_name.html" with record_type="CNAME" record_name=domain.mta_sts_hostname %}
-              {% include "domains/_record_value.html" with record_value=domain.mta_sts_cname_target %}
-            </div>
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.mta_sts_record_name record_value=domain.mta_sts_record quote=True %}
+            {% include "domains/_record_row.html" with record_type="CNAME" record_name=domain.mta_sts_hostname record_value=domain.mta_sts_cname_target %}
             <form method="post" class="mt-3 flex flex-col gap-3">
               {% csrf_token %}
               <div role="group" class="field">
@@ -268,10 +237,7 @@
             <p class="text-sm text-muted-foreground">
               {% translate "Receive TLS failure reports from senders. Add this record at your DNS provider for the root domain." %}
             </p>
-            <div class="input-group flex-wrap max-sm:h-auto">
-              {% include "domains/_record_name.html" with record_type="TXT" record_name=domain.tls_rpt_record_name %}
-              {% include "domains/_record_value.html" with record_value=domain.tls_rpt_record quote=True %}
-            </div>
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.tls_rpt_record_name record_value=domain.tls_rpt_record quote=True %}
           </div>
         </div>
       </section>
