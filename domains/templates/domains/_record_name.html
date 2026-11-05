@@ -1,7 +1,7 @@
 {% load abstract i18n %}
 <span data-align="start">{{ record_type }}</span>
 <input
-  class="max-sm:basis-[calc(100%-2.75rem)] text-right"
+  class="record-input max-sm:basis-[calc(100%-2.75rem)] text-right"
   type="text"
   readonly
   value="{{ record_name|relative_record_name:domain }}"

@@ -163,6 +163,15 @@
   row-gap: calc(var(--spacing) * 0.5);
 }
 
+/* A record input hugs its own text, so the copy button sits next to the
+   value it copies instead of at the far end of a stretched row. */
+.field .input-group > .record-input {
+  field-sizing: content;
+  flex: 0 1 auto;
+  min-width: 2ch;
+  max-width: 100%;
+}
+
 /* Restore the admin shell and native controls after basecoat's resets. */
 :where(html:has(body.admin), body.admin, body.admin *, body.admin *::before, body.admin *::after) {
   box-sizing: content-box;
