@@ -93,7 +93,7 @@
       tabindex="-1"
     >
       <section class="card p-6">
-        <p class="text-sm text-muted-foreground">
+        <p>
           {% blocktranslate trimmed %}
             Publish the SPF and DKIM records below, then verify DNS again. This is everything this domain needs to send
             authenticated email once the sender subdomain is delegated.
@@ -128,7 +128,7 @@
       hidden
     >
       <section class="card p-6">
-        <p class="text-sm text-muted-foreground">
+        <p>
           {% blocktranslate trimmed %}
             Point the MX record at relay, then verify DNS again. A sending-only domain can leave this record out.
           {% endblocktranslate %}
@@ -152,7 +152,7 @@
       hidden
     >
       <section class="card p-6">
-        <p class="text-sm text-muted-foreground">
+        <p>
           {% blocktranslate trimmed %}
             Publish the DMARC, MTA-STS, and TLS-RPT records to authenticate your domain, enforce TLS, and collect
             reports. The reporting addresses live on the sender subdomain, so the delegation must be in place for them
