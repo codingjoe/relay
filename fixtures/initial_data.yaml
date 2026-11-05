@@ -1700,3 +1700,85 @@
     tls_mode: starttls
     started_at: *id008
     finished_at: *id008
+- model: msa.msacredential
+  pk: 2
+  fields:
+    modified_at: 2026-11-05 13:30:00+00:00
+    created_at: 2026-11-05 13:30:00+00:00
+    org: 1
+    key_hash: ''
+    key_prefix: ''
+    name: Sandbox
+    last_used_at: null
+    hold: false
+    type: sandbox
+- model: message.message
+  pk: 01a1abfb-707a-767b-ac20-3d3d00d4b41e
+  fields:
+    modified_at: 2026-11-05 13:30:04+00:00
+    created_at: 2026-11-05 13:30:00+00:00
+    org: 1
+    content_type:
+      - msa
+      - outgoingmessage
+    mail_from: sandbox@acme.io
+    rcpt_to: qa@example.com
+    subject: Sandbox test message
+    message_id: <sandbox-test@acme.io>
+    raw_body: ''
+    headers:
+      - - From
+        - sandbox@acme.io
+      - - To
+        - qa@example.com
+      - - Message-ID
+        - <sandbox-test@acme.io>
+      - - Subject
+        - Sandbox test message
+      - - Date
+        - Thu, 05 Nov 2026 13:30:00 +0000
+      - - Content-Type
+        - text/plain; charset="utf-8"
+      - - Content-Transfer-Encoding
+        - 7bit
+      - - MIME-Version
+        - '1.0'
+    spam_score: 0.0
+    spam_action: no action
+    virus_action: clean
+    virus_name: ''
+    virus_symbols: {}
+    status: sandboxed
+    domain: 2
+- model: msa.outgoingmessage
+  pk: 01a1abfb-707a-767b-ac20-3d3d00d4b41e
+  fields:
+    domain: 2
+    credential: 2
+    status: sandboxed
+    is_sandbox: true
+- model: message.transmission
+  pk: 01a1abfb-7e4f-771c-916c-08bc61cb2b5e
+  fields:
+    modified_at: '2026-11-05 13:30:00.5+00:00'
+    created_at: '2026-11-05 13:30:00.5+00:00'
+    message: 01a1abfb-707a-767b-ac20-3d3d00d4b41e
+    status: submitted
+    code: 250
+    output: 250 OK
+    details: ''
+    tls_mode: plaintext
+    remote_ip_address: 203.0.113.9
+    started_at: '2026-11-05 13:30:00+00:00'
+    finished_at: '2026-11-05 13:30:00.5+00:00'
+- model: message.transmission
+  pk: 01a1abfb-707a-767b-ac20-3d3eb6963910
+  fields:
+    modified_at: 2026-11-05 13:30:04+00:00
+    created_at: 2026-11-05 13:30:04+00:00
+    message: 01a1abfb-707a-767b-ac20-3d3d00d4b41e
+    status: sandboxed
+    details: Sandbox submission, relay made no delivery attempt
+    tls_mode: plaintext
+    started_at: 2026-11-05 13:30:04+00:00
+    finished_at: 2026-11-05 13:30:04+00:00
