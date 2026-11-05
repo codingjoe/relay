@@ -4,6 +4,7 @@ from django.views import generic
 
 from abstract.views import NoStoreCacheMixin
 from accounts.views import OrganizationScopedView
+from domains.models import Domain
 from services.email.dmarc.charts import build_dmarc_chart
 from services.email.dmarc.models import DmarcFailureReport, DmarcReport
 from services.email.msa.submission import (
@@ -67,37 +68,37 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
             )
         )
 
-    def get_search(self):
-        """Return the active search parameter and its value."""
-        if ip := self.request.GET.get("ip"):
-            return "ip", ip
-        if domain := self.request.GET.get("domain"):
-            return "domain", domain
-        return "ip", ""
+    def get_selected_ip(self):
+        """Return the active IP address filter."""
+        return self.request.GET.get("ip", "")
 
-    def get_type_queryset(self, choice, field, value):
-        """Return the queryset for one report type with the active filter."""
+    def get_selected_domain(self):
+        """Return the active domain filter."""
+        return self.request.GET.get("domain", "")
+
+    def get_type_queryset(self, choice, ip, domain):
+        """Return the queryset for one report type with the active filters."""
         match choice:
             case ReportType.DMARC:
                 qs = DmarcReport.objects.filter(org=self.org).select_related("domain")
-                if field == "ip" and value:
-                    qs = qs.filter(records__source_ip_address=value).distinct()
+                if ip:
+                    qs = qs.filter(records__source_ip_address=ip).distinct()
             case ReportType.FAILURES:
                 qs = DmarcFailureReport.objects.filter(org=self.org).select_related(
                     "domain"
                 )
-                if field == "ip" and value:
-                    qs = qs.filter(source_ip_address=value)
+                if ip:
+                    qs = qs.filter(source_ip_address=ip)
             case ReportType.TLS:
                 qs = TlsReport.objects.filter(org=self.org).select_related("domain")
-                if field == "ip" and value:
-                    qs = qs.filter(failures__sending_mta_ip_address=value).distinct()
+                if ip:
+                    qs = qs.filter(failures__sending_mta_ip_address=ip).distinct()
             case ReportType.FBL:
                 qs = FblReport.objects.filter(org=self.org).select_related("domain")
-                if field == "ip" and value:
-                    qs = qs.filter(source_ip_address=value)
-        if field == "domain" and value:
-            qs = qs.filter(domain__name=value)
+                if ip:
+                    qs = qs.filter(source_ip_address=ip)
+        if domain:
+            qs = qs.filter(domain__name=domain)
         return qs
 
     def annotate_report(self, report, choice):
@@ -114,10 +115,11 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
 
     def get_queryset(self):
         selected = self.get_selected_types() or [choice.value for choice in ReportType]
-        field, value = self.get_search()
+        ip = self.get_selected_ip()
+        domain = self.get_selected_domain()
         reports = []
         for choice in (ReportType(selected_type) for selected_type in selected):
-            qs = self.get_type_queryset(choice, field, value)
+            qs = self.get_type_queryset(choice, ip, domain)
             for report in qs:
                 self.annotate_report(report, choice)
             reports.extend(qs)
@@ -168,14 +170,16 @@ class ReportListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListView
 
     def get_context_data(self, **kwargs):
         selected = self.get_selected_types()
-        field, value = self.get_search()
+        ip = self.get_selected_ip()
+        domain = self.get_selected_domain()
         chart_title, chart = self.get_chart(selected)
         return super().get_context_data(**kwargs) | {
             "types": selected,
             "type_label": self.get_type_label(selected),
             "type_options": self.get_type_options(selected),
-            "search_field": field,
-            "search_value": value,
+            "domain": domain,
+            "domains": Domain.objects.filter(org=self.org).order_by("name"),
+            "ip": ip,
             "chart_title": chart_title,
             "chart": chart,
         }
