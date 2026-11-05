@@ -2,35 +2,25 @@
 {% load abstract i18n %}
 {% block title %}{% translate "inbound email"|capfirst %} | relay{% endblock %}
 {% block content %}
-  <header class="flex items-center justify-between mb-6">
+  <header class="flex items-start justify-between gap-2 mb-6">
     <div>
-      <h2 class="m-0">{% translate "inbound email"|capfirst %}</h2>
+      <div class="flex items-center gap-1">
+        <h2 class="m-0">{% translate "inbound email"|capfirst %}</h2>
+        {% include "abstract/copy_button.html" with target="webhook-instructions" size="icon-xs" tooltip=_("copy AI coding agent instructions")|capfirst label=_("copy AI coding agent instructions")|capfirst %}
+      </div>
       <p class="m-0 mt-1 text-sm text-muted-foreground">
         {% blocktranslate trimmed %}
           Where your inbound email is delivered: HTTPS endpoints in your app.
         {% endblocktranslate %}
       </p>
     </div>
-    <div class="flex items-center gap-2">
-      <button
-        type="button"
-        class="btn"
-        data-variant="secondary"
-        data-copy-target="webhook-instructions"
-        data-align="end"
-        data-tooltip='{% translate "copy AI coding agent instructions"|capfirst %}'
-      >
-        {% tabler name="copy" size="3.5" %}
-        {% translate "copy instructions"|capfirst %}
-      </button>
-      <button
-        type="button"
-        class="btn"
-        data-dialog="dlg-new-webhook"
-      >
-        {% translate "new endpoint"|title %}
-      </button>
-    </div>
+    <button
+      type="button"
+      class="btn shrink-0"
+      data-dialog="dlg-new-webhook"
+    >
+      {% translate "new endpoint"|title %}
+    </button>
   </header>
 
   <dialog class="dialog" id="dlg-new-webhook">
