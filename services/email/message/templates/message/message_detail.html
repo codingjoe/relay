@@ -21,10 +21,13 @@
     <div class="flex flex-col gap-2 lg:flex-row lg:justify-between lg:gap-8">
       <div class="flex min-w-0 flex-col gap-2">
         <div>
-          <p class="m-0 text-2xl font-semibold">
+          <p class="m-0 flex flex-wrap items-center gap-2 text-2xl font-semibold">
             <span class="status" data-variant="{{ message.status_badge_variant }}">
               {{ message.status_display|capfirst }}
             </span>
+            {% if message|is_sandbox and message.status != "sandboxed" %}
+              {% include "message/_sandbox_badge.html" %}
+            {% endif %}
             {% if delivery_finished_at %}
               <span class="text-base font-normal text-muted-foreground">
                 {% timestamp delivery_finished_at %}

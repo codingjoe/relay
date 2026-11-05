@@ -22,6 +22,20 @@ def render(value: str, lexer) -> str:
 
 
 @register.filter
+def is_sandbox(message) -> bool:
+    """
+    Return whether a sandbox credential submitted the message.
+
+    A shared queryset returns base `Message` instances, so a list view
+    selects the outgoing child with `select_related("outgoingmessage")`.
+    """
+    if hasattr(message, "is_sandbox"):
+        return bool(message.is_sandbox)
+    outgoing = getattr(message, "outgoingmessage", None)
+    return bool(outgoing and outgoing.is_sandbox)
+
+
+@register.filter
 def highlight_email(value: str) -> str:
     """Convert a raw RFC 822 message to syntax-colored HTML."""
     return render(value, EmailLexer())

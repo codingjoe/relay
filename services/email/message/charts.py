@@ -13,6 +13,7 @@ STATUS_CHART_COLORS = {
     "success": "var(--color-chart-green)",
     "warning": "var(--color-chart-yellow)",
     "destructive": "var(--color-chart-red)",
+    "sandbox": "var(--color-chart-blue)",
     "outline": "var(--color-chart-gray)",
 }
 

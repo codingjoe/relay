@@ -36,6 +36,7 @@ class MessageListView(OrganizationScopedView, NoStoreCacheMixin, generic.ListVie
         qs = Message.objects.filter(org=self.org).select_related(
             "org",
             "content_type",
+            "outgoingmessage",
         )
         direction = self.request.GET.get("direction", self.Direction.ALL)
         match direction:

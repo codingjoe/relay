@@ -10,6 +10,12 @@
   @apply bg-warning/10 [a]:hover:bg-warning/20 focus-visible:ring-warning/20 text-warning dark:bg-warning/20 dark:focus-visible:ring-warning/40;
 }
 
+/* Sandbox traffic is a test run, not a delivery outcome, so it gets a
+   neutral informational blue instead of a status color. */
+.badge[data-variant="sandbox"] {
+  @apply bg-info/10 [a]:hover:bg-info/20 focus-visible:ring-info/20 text-info dark:bg-info/20 dark:focus-visible:ring-info/40;
+}
+
 /* Warning alert. Basecoat ships the default and destructive variants only, so
    this follows the badge tints above: the status tokens hold the 4.5:1 text
    floor on a 10% tint in light mode and a 20% tint in dark mode. */
@@ -37,6 +43,10 @@
 
 [data-variant="destructive"] {
   --status-color: var(--color-destructive);
+}
+
+[data-variant="sandbox"] {
+  --status-color: var(--color-info);
 }
 
 /* Basecoat's toast category only picks the icon. Tint the toast and its

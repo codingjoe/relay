@@ -1,0 +1,10 @@
+{% load i18n abstract %}
+<span
+  class="badge"
+  data-size="sm"
+  data-variant="sandbox"
+  data-tooltip='{% translate "relay never transmits sandbox messages"|capfirst %}'
+>
+  {% tabler name="flask" size=None %}
+  {% translate "sandbox"|capfirst %}
+</span>
