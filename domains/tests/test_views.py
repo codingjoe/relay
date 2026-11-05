@@ -304,7 +304,7 @@ class TestDomainDetailView:
         assert 'id="domain-dns-tab-reporting"' in content
         prerequisite = content.split('role="tabpanel"')[0]
         for ns in settings.DNS_NS_NAMESERVERS:
-            assert f"<code>{ns}.</code>" in prerequisite
+            assert f'value="{ns}."' in prerequisite
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."' in content
 
@@ -345,8 +345,8 @@ class TestDomainDetailView:
 
         prerequisite = content.split('role="tabpanel"')[0]
         for ns in settings.DNS_NS_NAMESERVERS:
-            assert f"<code>{ns}.</code>" in prerequisite
-            assert sum(f"<code>{ns}.</code>" in tab for tab in tabs) == 0
+            assert f'value="{ns}."' in prerequisite
+            assert sum(f'value="{ns}."' in tab for tab in tabs) == 0
 
     def test_get__renders_passing_check_status(self, admin_client, org, dns_resolver):
         domain = Domain.objects.create(name="example.com", org=org)
@@ -395,7 +395,8 @@ class TestDomainDetailView:
         assert b"Receiving" in response.content
         assert b"Reporting" in response.content
         assert b"Service prerequisite" in response.content
-        assert response.content.count(b"Not set up") == 4
+        assert b"Not checked" in response.content
+        assert response.content.count(b"Not set up") == 3
 
     def test_get__sending_tab_fails_while_a_record_is_missing(
         self, admin_client, org, dns_resolver
