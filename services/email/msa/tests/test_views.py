@@ -502,16 +502,20 @@ class TestCredentialListView:
         assert 'id="id_sandbox"' in content
         assert 'name="sandbox" value="true"' not in content
 
-    def test_get__renders_connection_uri(self, admin_client, org, settings):
+    def test_get__describes_the_connection_in_prose(self, admin_client, org, settings):
         settings.SMTP_PUBLIC_HOSTNAME = "smtp.relay.example"
         response = admin_client.get(f"/org/{org.slug}/email/credentials/")
         assert response.status_code == 200
         content = response.content.decode()
-        assert "smtps://test-org:&lt;credential key&gt;@smtp.relay.example" in content
-        assert (
-            "smtp+ssl://test-org:&lt;credential key&gt;@smtp.relay.example:465"
-            in content
-        )
+        assert "<code>smtp.relay.example</code>" in content
+        for port in (
+            *response.context["smtp_starttls_ports"],
+            *response.context["smtp_implicit_tls_ports"],
+        ):
+            assert f"<code>{port}</code>" in content
+        assert f"<code>{org.slug}</code>" in content
+        assert "Unencrypted submission on port 25 is not supported" in content
+        assert "smtps://" not in content
 
     def test_get__opens_the_key_dialog_after_creation(
         self, admin_client, org, settings
@@ -550,7 +554,7 @@ class TestCredentialListView:
     def test_get__key_row_carries_the_key_only_while_it_is_pending(
         self, admin_client, org
     ):
-        """The static table points at the key; the dialog is where it is shown."""
+        """The prose names the key; the dialog is where its value is shown."""
         admin_client.post(f"/org/{org.slug}/email/credentials/new", {"name": "Prod"})
         raw_key = admin_client.session["raw_key"]
 
@@ -581,32 +585,7 @@ class TestCredentialListView:
 
         content = response.content.decode()
         assert 'id="dlg-credential-key"' not in content
-        assert "<table" in content
-
-    def test_get__renders_copy_buttons_in_the_connection_table(self, admin_client, org):
-        response = admin_client.get(f"/org/{org.slug}/email/credentials/")
-
-        content = response.content.decode()
-        buttons = [
-            ("Copy server", response.context["smtp_hostname"]),
-            ("Copy port", ", ".join(map(str, response.context["smtp_starttls_ports"]))),
-            (
-                "Copy port",
-                ", ".join(map(str, response.context["smtp_implicit_tls_ports"])),
-            ),
-            ("Copy username", org.slug),
-        ]
-        for label, value in buttons:
-            button = copy_button(content, value)
-            assert button is not None, value
-            assert 'data-size="icon"' in button.group(), value
-            label_pattern = rf"aria-label=(?P<q>[\"']){re.escape(label)}(?P=q)"
-            assert re.search(label_pattern, button.group()), value
-
-        uri = escape(response.context["smtp_uri"])
-        uri_button = copy_button(content, uri)
-        assert uri_button is not None
-        assert 'data-size="icon-xs"' in uri_button.group()
+        assert "<table" not in content
 
     @pytest.mark.django_db
     def test_get__not_found_for_non_member(self, admin_client, write_org):

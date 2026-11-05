@@ -72,8 +72,9 @@ test = [
 [tool.ruff]
 [tool.ruff.lint.per-file-ignores]
 # The landing-page samples montage several files, so the sending one imports
-# mid-file and the receiving one parses a body it only documents.
-"root/templates/snippets/*" = [ "E402", "F841" ]
+# mid-file, the receiving one parses a body it only documents, and the
+# attachment sample downloads a signed URL.
+"root/templates/snippets/*" = [ "E402", "F841", "S310" ]
 # aiosmtpd and python-markdown require these method names by protocol.
 "abstract/utils.py" = [ "N802" ]
 "services/email/msa/handlers.py" = [ "N802" ]

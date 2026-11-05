@@ -32,12 +32,13 @@ class Action {
 
   static selector = Action.names
     .map((name) => `[data-${name}]`)
-    .concat("[data-confirm]")
+    .concat("[data-confirm]", "[data-copy-target]")
     .join(", ");
 
   constructor(trigger) {
     this.trigger = trigger;
     this.name = Action.names.find((name) => trigger.hasAttribute(`data-${name}`));
+    if (!this.name && trigger.hasAttribute("data-copy-target")) this.name = "copy";
   }
 
   static within(target) {
@@ -68,7 +69,10 @@ class Action {
   }
 
   copy() {
-    copyText(this.trigger.dataset.copy);
+    const id = this.trigger.dataset.copyTarget;
+    const target = id ? this.element(id) : null;
+    const value = target ? target.textContent.trim() : this.trigger.dataset.copy;
+    if (value) copyText(value);
   }
 
   share() {
