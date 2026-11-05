@@ -83,11 +83,15 @@ class TestFblReport:
     @pytest.mark.django_db
     def test_create_for_spam__creates_report_with_spam_fields(self, org):
         domain = Domain.objects.create(name="acme.com", org=org)
-        message = self.make_outgoing_message(
-            org,
+        message = IncomingMessage.objects.create(
+            org=org,
+            domain=domain,
+            receiving_domain="app.acme.com",
+            mail_from="sender@acme.com",
+            rcpt_to="rcpt@example.com",
             subject="Spam subject",
             message_id="<abc@acme.com>",
-            domain=domain,
+            status=IncomingMessage.Status.QUARANTINED,
         )
 
         report = FblReport.create_for_spam(message)
@@ -101,6 +105,7 @@ class TestFblReport:
         assert report.domain == domain
         assert report.org == org
         assert report.message == message
+        assert report.complained_message == message
 
     @pytest.mark.django_db
     def test_create_for_spam__records_referenced_incoming_message(self, org, user):
@@ -143,15 +148,6 @@ class TestFblReport:
         assert report.domain == domain
         assert report.message == message
         assert report.complained_message_id == complained_message.pk
-
-    @pytest.mark.django_db
-    def test_create_for_spam__records_complained_message(self, org):
-        domain = Domain.objects.create(name="acme.com", org=org)
-        message = self.make_outgoing_message(org, domain=domain)
-
-        report = FblReport.create_for_spam(message)
-
-        assert report.complained_message == message
 
 
 class TestFblReportRepr:

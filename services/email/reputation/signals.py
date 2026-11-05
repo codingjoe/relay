@@ -26,20 +26,17 @@ def check_reputation_on_bounce(sender, instance, **kwargs):
 @receiver(post_save, sender=OutgoingMessage)
 def check_reputation_on_held_message(sender, instance, **kwargs):
     """
-    Queue the ingest task when Relay flags a submission as spam.
+    Queue an org evaluation when Relay holds a submission as spam.
 
-    The relay-generated report and the org evaluation are recorded in the
-    task, after the message is fully ingested.
+    A held message counts as a complaint against the sending reputation.
+    Relay flagged it itself, so no FBL report is recorded.
     """
     held_as_spam = instance.status == OutgoingMessage.Status.HELD and "status" in (
         kwargs.get("update_fields") or ()
     )
     if held_as_spam:
         transaction.on_commit(
-            lambda: tasks.create_held_outgoing_fbl_report.enqueue(
-                message_pk=str(instance.id),
-                org_id=instance.org_id,
-            )
+            lambda: tasks.check_org_reputation.enqueue(org_id=instance.org_id)
         )
 
 

@@ -6,7 +6,6 @@ from django.core.mail import mailers
 from django.tasks import DEFAULT_TASK_QUEUE_NAME, task
 
 from accounts.models import Membership, Organization
-from services.email.msa.models import OutgoingMessage
 from services.email.msa.tasks import resolve_bounce_owner
 from services.email.mta.models import IncomingMessage
 
@@ -16,20 +15,6 @@ from .emails import WeeklyDigestEmail
 from .models import FblReport
 
 logger = logging.getLogger(__name__)
-
-
-@task()
-def create_held_outgoing_fbl_report(message_pk, org_id):
-    """
-    Store a relay-generated FBL report for a held outgoing message.
-
-    The held message counts as spam against the organization's quota even
-    though it was never relayed. Queues an org evaluation after the
-    report is stored.
-    """
-    message = OutgoingMessage.objects.get(pk=message_pk)
-    FblReport.create_for_spam(message)
-    check_org_reputation.enqueue(org_id=org_id)
 
 
 @task()

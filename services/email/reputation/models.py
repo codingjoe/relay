@@ -223,11 +223,10 @@ class FblReport(OrganizationOwned):
     @classmethod
     def create_for_spam(cls, message):
         """
-        Store a relay-generated FBL report for a spam-flagged message.
+        Store a relay-generated FBL report for a quarantined incoming message.
 
-        Covers MSA-held outgoing messages and MTA-quarantined incoming
-        messages. Relay-generated reports are for visibility only and do
-        not count as complaints.
+        Relay-generated reports are for visibility only and do not count
+        as complaints.
         """
         return cls.objects.create(
             source=cls.Source.RELAY,
