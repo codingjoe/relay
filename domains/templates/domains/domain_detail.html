@@ -169,35 +169,36 @@
             {% include "domains/_check_error.html" with error=domain.mta_sts_error %}
             {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.mta_sts_record_name record_value=domain.mta_sts_record quote=True status=domain.mta_sts_status %}
             {% include "domains/_record_row.html" with record_type="CNAME" record_name=domain.mta_sts_hostname record_value=domain.mta_sts_cname_target status=domain.mta_sts_status %}
-            <form method="post" class="mt-3 flex flex-col gap-3">
-              {% csrf_token %}
-              <div role="group" class="field">
-                <label for="{{ mta_sts_form.mta_sts_mx_hostnames.id_for_label }}">
-                  {{ mta_sts_form.mta_sts_mx_hostnames.label }}
-                </label>
-                {{ mta_sts_form.mta_sts_mx_hostnames }}
-                <p
-                  class="text-sm text-muted-foreground"
-                  id="{{ mta_sts_form.mta_sts_mx_hostnames.auto_id }}_helptext"
-                >
-                  {{ mta_sts_form.mta_sts_mx_hostnames.help_text }}
-                </p>
-                {% for error in mta_sts_form.mta_sts_mx_hostnames.errors %}
-                  <p class="text-sm text-destructive">{{ error }}</p>
-                {% endfor %}
-              </div>
-              <div>
-                <button type="submit" class="btn" data-size="sm">
-                  {% translate "save"|capfirst context "verb" %}
-                </button>
-              </div>
-            </form>
           </div>
 
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.tls_rpt_error %}
             {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.tls_rpt_record_name record_value=domain.tls_rpt_record quote=True status=domain.tls_rpt_status %}
           </div>
+
+          <form method="post" class="flex flex-col gap-3">
+            {% csrf_token %}
+            <div role="group" class="field">
+              <label for="{{ mta_sts_form.mta_sts_mx_hostnames.id_for_label }}">
+                {{ mta_sts_form.mta_sts_mx_hostnames.label }}
+              </label>
+              {{ mta_sts_form.mta_sts_mx_hostnames }}
+              <p
+                class="text-sm text-muted-foreground"
+                id="{{ mta_sts_form.mta_sts_mx_hostnames.auto_id }}_helptext"
+              >
+                {{ mta_sts_form.mta_sts_mx_hostnames.help_text }}
+              </p>
+              {% for error in mta_sts_form.mta_sts_mx_hostnames.errors %}
+                <p class="text-sm text-destructive">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div>
+              <button type="submit" class="btn" data-size="sm">
+                {% translate "save"|capfirst context "verb" %}
+              </button>
+            </div>
+          </form>
         </div>
       </section>
     </div>
