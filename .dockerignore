@@ -44,8 +44,8 @@ deploy/
 README.md
 AGENTS.md
 CLAUDE.md
-REVIEW.md
-CONVENTIONS.md
+**/AGENTS.md
+**/CLAUDE.md
 PRODUCT.md
 
 # Misc
