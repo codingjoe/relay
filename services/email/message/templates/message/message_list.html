@@ -162,13 +162,18 @@
           </div>
         </section>
         <aside class="flex flex-col items-end gap-1 shrink-0">
-          <span
-            class="badge"
-            data-size="sm"
-            data-variant="{{ message.status_badge_variant }}"
-          >
-            {{ message.status_display }}
-          </span>
+          <div class="flex items-center gap-1.5">
+            {% if message|is_sandbox and message.status != "sandboxed" %}
+              {% include "message/_sandbox_badge.html" %}
+            {% endif %}
+            <span
+              class="badge"
+              data-size="sm"
+              data-variant="{{ message.status_badge_variant }}"
+            >
+              {{ message.status_display }}
+            </span>
+          </div>
           {% timestamp message.created_at %}
         </aside>
       </a>

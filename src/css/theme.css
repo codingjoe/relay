@@ -51,9 +51,10 @@
      soft-tinted badge background (10% alpha over white), and the dark
      shades on the 20% tint; both hold it against the plain background
      too. Registered in @theme so Tailwind generates the bg-, text-,
-     and ring-success/warning utilities the status badges use. */
+     and ring-success/warning/info utilities the status badges use. */
   --color-success: light-dark(hsl(142, 71%, 28%), hsl(142, 60%, 55%));
   --color-warning: light-dark(hsl(33, 95%, 32%), hsl(38, 95%, 58%));
+  --color-info: light-dark(hsl(225, 65%, 36%), hsl(225, 75%, 72%));
 
   --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

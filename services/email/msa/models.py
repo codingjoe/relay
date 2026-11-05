@@ -68,6 +68,8 @@ class OutgoingMessage(Message):
                     return "success"
                 case status_class.HELD:
                     return "warning"
+                case status_class.SANDBOXED:
+                    return "sandbox"
                 case status_class.BOUNCED | status_class.DROPPED | status_class.FAILED:
                     return "destructive"
                 case _:

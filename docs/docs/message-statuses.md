@@ -156,8 +156,13 @@ with the URL, response code, and a response excerpt.
 - The message list of the dashboard colors each status badge with the
   same traffic-light tones as the charts: success for sent, received,
   and webhook_sent, warning for held and quarantined, destructive for
-  bounced, failed, dropped, and webhook_failed, and outline for
-  everything still open or neutral.
+  bounced, failed, dropped, and webhook_failed, blue for sandboxed, and
+  outline for everything still open or neutral.
+- A message submitted with a sandbox credential gets a blue sandbox
+  badge in the list and on its detail page. The badge sits beside the
+  status while the message is pending or held, and the sandboxed status
+  uses the same blue. relay stores and scans the message but never
+  transmits it.
 - The message list graphs the last 30 days of messages by status. The sent
   view graphs outgoing messages. The received view graphs incoming
   messages, including report messages. The unfiltered view graphs both in
