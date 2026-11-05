@@ -98,6 +98,11 @@ verified while receiving and reporting still need setup. Checks run per
 record, and the dashboard shows each of them, so a wrong record is
 identifiable. Re-check at any time.
 
+Each group has a zone file download for providers that import a zone file.
+The file uses `$ORIGIN` and `$TTL`, lists the records relative to your
+domain, and covers one group: delegation, sending, receiving, or
+reporting.
+
 ## What the nameserver serves
 
 For a delegated domain the authoritative nameserver answers:

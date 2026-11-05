@@ -17,6 +17,7 @@ from . import resolver
 from .forms import DomainCreateForm, DomainMtaStsForm
 from .models import Domain, canonicalize_domain_name
 from .services import verify_domain_dns
+from .zonefile import build_zone_file
 
 
 class DomainListView(OrganizationScopedView, ConditionalGetListMixin, generic.ListView):
@@ -86,6 +87,32 @@ class DomainDetailView(OrganizationScopedView, ConditionalGetMixin, generic.Deta
             response = self.render_to_response(
                 self.get_context_data() | {"mta_sts_form": form}
             )
+        return response
+
+
+class DomainZoneFileView(OrganizationScopedView, generic.View):
+    def get(self, request, org_slug, pk, group, *args, **kwargs):
+        domain = get_object_or_404(
+            Domain,
+            org=self.org,
+            is_managed=False,
+            pk=pk,
+        )
+        platform = request.get_host().split(":")[0]
+        try:
+            content = build_zone_file(
+                domain,
+                group,
+                nameservers=[f"ns1.{platform}", f"ns2.{platform}"],
+                mx_hostnames=settings.DNS_MX_HOSTNAMES,
+                mx_priority=resolver.DNSResolver.MX_PRIORITY,
+            )
+        except ValueError as error:
+            raise Http404 from error
+        response = HttpResponse(content, content_type="text/plain; charset=utf-8")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{domain.name}-{group}.zone"'
+        )
         return response
 
 

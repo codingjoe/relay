@@ -308,6 +308,17 @@ class TestDomainDetailView:
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."' in content
 
+    def test_get__offers_a_zone_file_for_each_group(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+
+        content = response.content.decode()
+        for group in ("delegation", "sending", "receiving", "reporting"):
+            assert (
+                f"/org/{org.slug}/email/domains/{domain.pk}/zonefile/{group}" in content
+            )
+
     def test_get__renders_each_record_group_in_its_own_tab(
         self, admin_client, org, dns_resolver
     ):
@@ -427,6 +438,89 @@ class TestDomainDetailView:
     def test_get__not_found_for_other_org(self, admin_client, org, write_org):
         domain = Domain.objects.create(name="other.com", org=write_org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestDomainZoneFileView:
+    def zone_url(self, org, domain, group):
+        return f"/org/{org.slug}/email/domains/{domain.pk}/zonefile/{group}"
+
+    def test_get__requires_login(self, client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = client.get(self.zone_url(org, domain, "sending"))
+
+        assert response.status_code == 302
+        assert "/account/login" in response.url
+
+    def test_get__downloads_the_sending_zone_file(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(self.zone_url(org, domain, "sending"))
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/plain; charset=utf-8"
+        assert (
+            response["Content-Disposition"]
+            == 'attachment; filename="example.com-sending.zone"'
+        )
+        content = response.content.decode()
+        assert "$ORIGIN example.com." in content
+        assert f'@ IN TXT "{domain.root_spf_record}"' in content
+        for name, target in domain.dkim_cnames.values():
+            assert (
+                f"{name.removesuffix(f'.{domain.name}')} IN CNAME {target}." in content
+            )
+
+    def test_get__delegation_zone_file_lists_the_nameservers(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(self.zone_url(org, domain, "delegation"))
+
+        content = response.content.decode()
+        assert "mail.relay IN NS " in content
+        assert content.count("mail.relay IN NS ") == 2
+
+    def test_get__receiving_zone_file_lists_the_mx_hosts(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(self.zone_url(org, domain, "receiving"))
+
+        content = response.content.decode()
+        for hostname in settings.DNS_MX_HOSTNAMES:
+            assert f"@ IN MX 10 {hostname.split(':')[0]}." in content
+
+    def test_get__reporting_zone_file_lists_the_records(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(self.zone_url(org, domain, "reporting"))
+
+        content = response.content.decode()
+        assert f'_dmarc IN TXT "{domain.dmarc_record}"' in content
+        assert f'_mta-sts IN TXT "{domain.mta_sts_record}"' in content
+        assert f"mta-sts IN CNAME {domain.mta_sts_cname_target}." in content
+        assert f'_smtp._tls IN TXT "{domain.tls_rpt_record}"' in content
+
+    def test_get__not_found_for_unknown_group(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(self.zone_url(org, domain, "other"))
+
+        assert response.status_code == 404
+
+    def test_get__not_found_for_other_org(self, admin_client, org, write_org):
+        domain = Domain.objects.create(name="other.com", org=write_org)
+
+        response = admin_client.get(self.zone_url(org, domain, "sending"))
+
+        assert response.status_code == 404
+
+    def test_get__not_found_for_managed_domain(self, admin_client, org):
+        domain = Domain.objects.get(org=org, is_managed=True)
+
+        response = admin_client.get(self.zone_url(org, domain, "sending"))
+
         assert response.status_code == 404
 
 
