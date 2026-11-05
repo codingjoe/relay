@@ -48,7 +48,7 @@
   <div role="group" class="field mb-6">
     {% include "domains/_check_error.html" with error=domain.nameserver_error %}
     {% for ns in nameservers %}
-      {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status %}
+      {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status quote=False priority=None %}
     {% endfor %}
   </div>
 
@@ -108,18 +108,18 @@
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.spf_error %}
-            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.name record_value=domain.root_spf_record quote=True status=domain.spf_status %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.name record_value=domain.root_spf_record quote=True status=domain.spf_status priority=None %}
           </div>
 
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.dkim_rsa2048_error %}
-            {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 record_value=dkim_cnames.dkim_rsa2048.1 status=domain.dkim_rsa2048_status %}
+            {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_rsa2048.0 record_value=dkim_cnames.dkim_rsa2048.1 status=domain.dkim_rsa2048_status quote=False priority=None %}
           </div>
 
           <div class="flex flex-col gap-4 border-t border-border pt-4">
             <div role="group" class="field">
               {% include "domains/_check_error.html" with error=domain.dkim_ed25519_error %}
-              {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 record_value=dkim_cnames.dkim_ed25519.1 status=domain.dkim_ed25519_status %}
+              {% include "domains/_record_row.html" with record_type="CNAME" record_name=dkim_cnames.dkim_ed25519.0 record_value=dkim_cnames.dkim_ed25519.1 status=domain.dkim_ed25519_status quote=False priority=None %}
             </div>
           </div>
         </div>
@@ -146,7 +146,7 @@
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.mx_error %}
             {% for mx_hostname in mx_hostnames %}
-              {% include "domains/_record_row.html" with record_type="MX" record_name=domain.name priority=mx_priority record_value=mx_hostname status=domain.mx_status %}
+              {% include "domains/_record_row.html" with record_type="MX" record_name=domain.name priority=mx_priority record_value=mx_hostname status=domain.mx_status quote=False %}
             {% endfor %}
           </div>
         </div>
@@ -174,18 +174,18 @@
         <div class="flex flex-col gap-4">
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.dmarc_error %}
-            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.dmarc_record_name record_value=domain.dmarc_record quote=True status=domain.dmarc_status %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.dmarc_record_name record_value=domain.dmarc_record quote=True status=domain.dmarc_status priority=None %}
           </div>
 
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.mta_sts_error %}
-            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.mta_sts_record_name record_value=domain.mta_sts_record quote=True status=domain.mta_sts_status %}
-            {% include "domains/_record_row.html" with record_type="CNAME" record_name=domain.mta_sts_hostname record_value=domain.mta_sts_cname_target status=domain.mta_sts_status %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.mta_sts_record_name record_value=domain.mta_sts_record quote=True status=domain.mta_sts_status priority=None %}
+            {% include "domains/_record_row.html" with record_type="CNAME" record_name=domain.mta_sts_hostname record_value=domain.mta_sts_cname_target status=domain.mta_sts_status quote=False priority=None %}
           </div>
 
           <div role="group" class="field">
             {% include "domains/_check_error.html" with error=domain.tls_rpt_error %}
-            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.tls_rpt_record_name record_value=domain.tls_rpt_record quote=True status=domain.tls_rpt_status %}
+            {% include "domains/_record_row.html" with record_type="TXT" record_name=domain.tls_rpt_record_name record_value=domain.tls_rpt_record quote=True status=domain.tls_rpt_status priority=None %}
           </div>
 
           <form method="post" class="flex flex-col gap-3">

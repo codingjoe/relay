@@ -303,7 +303,7 @@ class TestDomainDetailView:
         assert 'id="domain-dns-tab-receiving"' in content
         assert 'id="domain-dns-tab-reporting"' in content
         prerequisite = content.split('role="tabpanel"')[0]
-        for ns in settings.DNS_NS_NAMESERVERS:
+        for ns in response.context["nameservers"]:
             assert f'value="{ns}."' in prerequisite
         for mx_hostname in settings.DNS_MX_HOSTNAMES:
             assert f'value="{mx_hostname}."' in content
@@ -349,7 +349,7 @@ class TestDomainDetailView:
                 assert sum(record in other for other in tabs) == 1
 
         prerequisite = content.split('role="tabpanel"')[0]
-        for ns in settings.DNS_NS_NAMESERVERS:
+        for ns in response.context["nameservers"]:
             assert f'value="{ns}."' in prerequisite
             assert sum(f'value="{ns}."' in tab for tab in tabs) == 0
 
