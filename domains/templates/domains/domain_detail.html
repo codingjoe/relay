@@ -37,7 +37,7 @@
     </form>
   </header>
 
-  <p class="text-muted-foreground mb-6">
+  <p class="mb-6">
     {% blocktranslate trimmed %}
       Delegate the sender subdomain to relay. Sending and reporting do not work until the delegation is live.
     {% endblocktranslate %}
@@ -48,13 +48,6 @@
       {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status %}
     {% endfor %}
   </div>
-
-  <p class="text-muted-foreground mb-6">
-    {% blocktranslate trimmed %}
-      Publish the records below to send email, receive mail, and collect reports for this domain. Relaxed DMARC
-      alignment covers all subdomains.
-    {% endblocktranslate %}
-  </p>
 
   <div class="tabs domain-record-tabs mb-6" id="domain-dns-tabs">
     <nav role="tablist" aria-orientation="horizontal">
