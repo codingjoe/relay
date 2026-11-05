@@ -11,13 +11,25 @@
         {% endblocktranslate %}
       </p>
     </div>
-    <button
-      type="button"
-      class="btn"
-      data-dialog="dlg-new-webhook"
-    >
-      {% translate "new endpoint"|title %}
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="btn"
+        data-variant="secondary"
+        data-copy-target="webhook-instructions"
+        data-tooltip='{% translate "copies the setup steps and code examples as Markdown, ready for your coding agent"|capfirst %}'
+      >
+        {% tabler name="copy" size="3.5" %}
+        {% translate "copy instructions"|capfirst %}
+      </button>
+      <button
+        type="button"
+        class="btn"
+        data-dialog="dlg-new-webhook"
+      >
+        {% translate "new endpoint"|title %}
+      </button>
+    </div>
   </header>
 
   <dialog class="dialog" id="dlg-new-webhook">
@@ -183,8 +195,8 @@
   {% endif %}
 
   {% translate "usage" as usage_title %}
-  <div class="max-w-3xl mt-6">
-    {% include "partials/code_sample.html" with id="snippet-receiving" title=usage_title|capfirst django_snippet="snippets/django_receiving.py" next_snippet="snippets/next_receiving.ts" %}
+  <div class="mt-6">
+    {% include "partials/code_sample.html" with id="snippet-receiving" title=usage_title|capfirst django_snippet="snippets/django_receiving_attachments.py" next_snippet="snippets/next_receiving_attachments.ts" %}
   </div>
 
   <section class="card mt-6 p-6">
@@ -205,4 +217,8 @@
     </p>
     {{ webhook_payload|highlight_code:"json" }}
   </section>
+
+  <div id="webhook-instructions" hidden>
+    {% filter force_escape %}{% include "mta/webhook_instructions.txt" %}{% endfilter %}
+  </div>
 {% endblock %}

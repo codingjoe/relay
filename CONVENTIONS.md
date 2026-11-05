@@ -328,7 +328,9 @@ A rule lives either in this document or in `.relint.yml`, never both.
   behavior lives in `root/static/js/app.js` and is driven by data hooks on the
   markup: `data-dialog`, `data-dialog-close`, `data-backdrop-close`,
   `data-auto-open`, `data-confirm`, `data-copy`, `data-share`, `data-href`,
-  `data-toggle`, `data-select`, `data-mirror`.
+  `data-toggle`, `data-select`, `data-mirror`. `data-copy` copies its
+  attribute value, and `data-copy-target` copies the text of the named
+  element.
 
 - Third-party JavaScript comes from npm. Import it by
   package name (`import { html } from "lit"`) and let the import map

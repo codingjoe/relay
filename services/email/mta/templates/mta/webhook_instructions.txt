@@ -1,0 +1,75 @@
+# Receive inbound email from relay
+
+relay is the email platform this project uses. Add an HTTPS endpoint that
+receives inbound email from relay, verifies each delivery, downloads the raw
+message, and extracts attachments.
+
+## Set up the endpoint
+
+1. In the relay dashboard open **Inbound email** and create an endpoint.
+2. Enter an HTTPS URL, for example `https://your-app.example/webhooks/relay`.
+3. Pick the receiving domain and an address pattern, for example
+   `*@app.acme.com`.
+4. Store the endpoint's signing secret in the environment variable
+   `WEBHOOK_SIGNING_SECRET`.
+
+## Verify each delivery
+
+Deliveries follow the Standard Webhooks specification. They carry
+`webhook-id`, `webhook-timestamp`, and `webhook-signature` headers. Verify
+them with a Standard Webhooks SDK. The signed content is
+`{id}.{timestamp}.{body}` and the signature is an HMAC-SHA256 signature made
+with the signing secret.
+
+Answer 2xx within 30 seconds. Anything else retries for about three days.
+Deduplicate deliveries on `webhook-id`.
+
+## Payload
+
+Deliveries use the type `email.received` and a flat JSON body:
+
+```json
+{
+  "type": "email.received",
+  "message_id": "0198b7c2-7c11-7000-8000-3b9bb91234af",
+  "sender": "ann@example.net",
+  "recipient": "kim@app.acme.com",
+  "subject": "Quote request",
+  "rfc822_message_id": "<ab12@example.net>",
+  "received_with_tls": true,
+  "receiving_domain": "app.acme.com",
+  "body_url": "https://storage.relays.to/messages/0199....eml?signature=...",
+  "spam_score": 1.5,
+  "spam_action": "no action",
+  "received_at": "2026-08-29T09:41:18Z"
+}
+```
+
+`body_url` is a signed download for the raw RFC 822 message. The link
+expires, so download the body from the handler or from a worker that runs
+promptly.
+
+## Django example
+
+```python
+{% include "snippets/django_receiving_attachments.py" %}
+```
+
+## Next.js example
+
+Install `postal-mime` with `pnpm add postal-mime`.
+
+```typescript
+{% include "snippets/next_receiving_attachments.ts" %}
+```
+
+## Extract attachments
+
+Walk the MIME parts of the raw message and match them by content type. A PDF
+invoice arrives as `application/pdf`. Store the part under the filename the
+sender chose, and fall back to a name when it is missing.
+
+## Further reading
+
+- [Webhooks]({{ request.scheme }}://{{ request.get_host }}{% url 'docs:detail' slug='webhooks' %})
+- [Receiving]({{ request.scheme }}://{{ request.get_host }}{% url 'docs:detail' slug='receiving' %})
