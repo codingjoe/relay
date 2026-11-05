@@ -26,5 +26,5 @@ class DomainAdmin(TimeStampedAdminMixin, admin.ModelAdmin):
         "dmarc_status",
         "verified_at",
     ]
-    search_fields = ["name", "org__name"]
+    search_fields = ["name", "org__slug"]
     autocomplete_fields = ["org", "dkim_key_rsa2048", "dkim_key_ed25519"]
