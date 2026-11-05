@@ -196,7 +196,6 @@
 .field .input-group > .record-input {
   field-sizing: content;
   flex: 0 1 auto;
-  min-width: 2ch;
   max-width: 100%;
 }
 

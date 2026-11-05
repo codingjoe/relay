@@ -1,9 +1,7 @@
-<div class="input-group flex-wrap max-sm:h-auto">
+<div class="input-group flex-wrap max-sm:h-auto sm:flex-nowrap">
   {% include "domains/_record_name.html" with record_type=record_type record_name=record_name %}
-  <span
-    class="mx-1 flex flex-1 items-center justify-center select-none text-muted-foreground"
-    aria-hidden="true"
-  >→</span>
+  <span class="mx-1 shrink-0 select-none text-muted-foreground" aria-hidden="true">→</span>
+  <div class="flex-1"></div>
   {% if priority %}
     <input
       class="basis-12 flex-none"
