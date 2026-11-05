@@ -381,7 +381,7 @@ class TestDomainDetailView:
         assert b"Sending" in response.content
         assert b"Receiving" in response.content
         assert b"Reporting" in response.content
-        assert b"Service prerequisite" in response.content
+        assert b"Before you start" in response.content
         assert b"Not verified" not in response.content
         assert b"Not ready" not in response.content
         assert b"Not set up" not in response.content
@@ -394,7 +394,7 @@ class TestDomainDetailView:
         assert b"Sending" in response.content
         assert b"Receiving" in response.content
         assert b"Reporting" in response.content
-        assert b"Service prerequisite" in response.content
+        assert b"Before you start" in response.content
         assert b"Not checked" in response.content
         assert response.content.count(b"Not set up") == 3
 

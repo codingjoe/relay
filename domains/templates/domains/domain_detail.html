@@ -39,20 +39,22 @@
 
   <section class="card mb-6">
     <header>
-      <h3>{% translate "service prerequisite"|capfirst %}</h3>
+      <h3>{% translate "before you start"|capfirst %}</h3>
       <p>
         {% blocktranslate trimmed with sender_domain=domain.sender_domain %}
-          Delegate the sender subdomain {{ sender_domain }} to relay. Sending and reporting will not work until the
-          delegation is live.
+          Delegate the sender subdomain <code>{{ sender_domain }}</code> to relay. Sending and reporting do not work
+          until the delegation is live.
         {% endblocktranslate %}
       </p>
     </header>
     <section class="flex flex-col gap-4">
       <div role="group" class="field">
         {% include "domains/_check_status.html" with status=domain.nameserver_status error=domain.nameserver_error label="NS" %}
+        <p class="text-sm text-muted-foreground">
+          {% translate "point the delegation at these nameservers."|capfirst %}
+        </p>
         {% for ns in nameservers %}
-          <div class="input-group flex-wrap max-sm:h-auto{% if not forloop.first %} mt-2{% endif %}">
-            {% include "domains/_record_name.html" with record_type="NS" record_name=domain.sender_domain %}
+          <div class="input-group{% if not forloop.first %} mt-2{% endif %}">
             {% include "domains/_record_value.html" with record_value=ns trailing_dot=True %}
           </div>
         {% endfor %}
