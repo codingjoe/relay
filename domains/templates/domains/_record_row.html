@@ -1,6 +1,9 @@
 <div class="input-group flex-wrap max-sm:h-auto">
   {% include "domains/_record_name.html" with record_type=record_type record_name=record_name %}
-  <span class="mx-1 flex flex-1 items-center select-none text-muted-foreground" aria-hidden="true">→</span>
+  <span
+    class="mx-1 flex flex-1 items-center justify-center select-none text-muted-foreground"
+    aria-hidden="true"
+  >→</span>
   {% if priority %}
     <input
       class="basis-12 flex-none"
@@ -12,6 +15,6 @@
   {% endif %}
   {% include "domains/_record_value.html" with record_value=record_value quote=quote %}
   {% if status %}
-    {% include "domains/_status_icon.html" with status=status extra_class="ms-1" %}
+    {% include "domains/_status_icon.html" with status=status extra_class="ms-1 me-2.5" %}
   {% endif %}
 </div>
