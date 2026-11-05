@@ -81,7 +81,7 @@ Verification reads the live DNS and groups the result into a prerequisite
 and three tabs:
 
 - Delegation: NS delegation on the sender subdomain. The domain page shows
-  the sender subdomain and the nameservers in a card above the tabs.
+  the sender subdomain and the nameservers above the tabs.
   Sending and reporting both depend on it, because the SPF include, the
   DKIM CNAME targets, and the DMARC and TLS-RPT reporting addresses live in
   that subdomain.

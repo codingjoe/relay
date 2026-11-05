@@ -37,23 +37,17 @@
     </form>
   </header>
 
-  <section class="card mb-6">
-    <header>
-      <p>
-        {% blocktranslate trimmed %}
-          Delegate the sender subdomain to relay. Sending and reporting do not work until the delegation is live.
-        {% endblocktranslate %}
-      </p>
-    </header>
-    <section class="flex flex-col gap-4">
-      <div role="group" class="field">
-        {% include "domains/_check_error.html" with error=domain.nameserver_error %}
-        {% for ns in nameservers %}
-          {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status %}
-        {% endfor %}
-      </div>
-    </section>
-  </section>
+  <p class="text-muted-foreground mb-6">
+    {% blocktranslate trimmed %}
+      Delegate the sender subdomain to relay. Sending and reporting do not work until the delegation is live.
+    {% endblocktranslate %}
+  </p>
+  <div role="group" class="field mb-6">
+    {% include "domains/_check_error.html" with error=domain.nameserver_error %}
+    {% for ns in nameservers %}
+      {% include "domains/_record_row.html" with record_type="NS" record_name=domain.sender_domain record_value=ns status=domain.nameserver_status %}
+    {% endfor %}
+  </div>
 
   <p class="text-muted-foreground mb-6">
     {% blocktranslate trimmed %}
