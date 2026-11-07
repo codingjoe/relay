@@ -376,6 +376,22 @@ class TestMtaStsRecord:
         assert domain.mta_sts_record == f"v=STSv1; id={domain.mta_sts_policy_id}"
 
 
+class TestMtaStsRecordCnameTarget:
+    def test_mta_sts_record_cname_target__uses_sender_subdomain(self):
+        assert (
+            Domain(name="example.com").mta_sts_record_cname_target
+            == "_mta-sts.mail.relay.example.com"
+        )
+
+
+class TestTlsRptRecordCnameTarget:
+    def test_tls_rpt_record_cname_target__uses_sender_subdomain(self):
+        assert (
+            Domain(name="example.com").tls_rpt_record_cname_target
+            == "_smtp._tls.mail.relay.example.com"
+        )
+
+
 class TestMtaStsMxHosts:
     def test_mta_sts_mx_hosts__uses_mx_record_hostnames(self, settings):
         settings.DNS_MX_HOSTNAMES = ["mx1.example.com"]

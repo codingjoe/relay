@@ -19,14 +19,14 @@ example `acme.com`, you deploy the delegation and add DMARC, and relay serves
 the rest. The dashboard lists the exact records, and its checks confirm each
 one:
 
-| Check         | Where relay looks                  | What it wants to see                                 |
-| ------------- | ---------------------------------- | ---------------------------------------------------- |
-| NS delegation | `mail.relay.acme.com`              | NS records to the relay nameservers                  |
-| SPF           | root and sender subdomain TXT      | a record that authorizes each relay sending IP       |
-| DKIM          | two CNAME records                  | `{selector}._domainkey` pointing into the relay zone |
-| DMARC         | `_dmarc.acme.com` TXT              | `v=DMARC1` with reporting to the relay collector     |
-| MTA-STS       | `_mta-sts` TXT and `mta-sts` CNAME | `v=STSv1` record and relay policy host               |
-| TLS-RPT       | `_smtp._tls` TXT                   | reporting to the relay TLS collector                 |
+| Check         | Where relay looks               | What it wants to see                                 |
+| ------------- | ------------------------------- | ---------------------------------------------------- |
+| NS delegation | `mail.relay.acme.com`           | NS records to the relay nameservers                  |
+| SPF           | root and sender subdomain TXT   | a record that authorizes each relay sending IP       |
+| DKIM          | two CNAME records               | `{selector}._domainkey` pointing into the relay zone |
+| DMARC         | `_dmarc.acme.com` TXT           | `v=DMARC1` with reporting to the relay collector     |
+| MTA-STS       | `_mta-sts` and `mta-sts` CNAMEs | `v=STSv1` policy id and relay policy host            |
+| TLS-RPT       | `_smtp._tls` CNAME              | reporting to the relay TLS collector                 |
 
 Four public-key selectors, two per domain (RSA-2048 and Ed25519),
 sign every message with `h=sha256`. Both algorithms ride on every

@@ -41,7 +41,16 @@ def publish_dns_records(dns_resolver, domain, fields):
                     *(f"10 {hostname}." for hostname in settings.DNS_MX_HOSTNAMES),
                 )
             case "mta_sts":
-                dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+                dns_resolver.add(
+                    f"_mta-sts.{domain.name}",
+                    "CNAME",
+                    f"{domain.mta_sts_record_cname_target}.",
+                )
+                dns_resolver.add(
+                    domain.mta_sts_record_cname_target,
+                    "TXT",
+                    f'"{domain.mta_sts_record}"',
+                )
                 dns_resolver.add(
                     f"mta-sts.{domain.name}",
                     "CNAME",
@@ -50,6 +59,11 @@ def publish_dns_records(dns_resolver, domain, fields):
             case "tls_rpt":
                 dns_resolver.add(
                     f"_smtp._tls.{domain.name}",
+                    "CNAME",
+                    f"{domain.tls_rpt_record_cname_target}.",
+                )
+                dns_resolver.add(
+                    domain.tls_rpt_record_cname_target,
                     "TXT",
                     f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
                 )
@@ -223,6 +237,17 @@ class TestDomainDetailView:
         assert "nameservers" in response.context
         assert "dkim_cnames" in response.context
 
+    def test_get__delegates_reports_with_cnames(self, admin_client, org):
+        domain = Domain.objects.create(name="example.com", org=org)
+
+        response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
+
+        content = response.content.decode()
+        assert domain.mta_sts_record_cname_target in content
+        assert domain.tls_rpt_record_cname_target in content
+        assert domain.mta_sts_record not in content
+        assert domain.tls_rpt_record not in content
+
     def test_get__cache_control_header(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)
         response = admin_client.get(f"/org/{org.slug}/email/domains/{domain.pk}/")
@@ -338,9 +363,9 @@ class TestDomainDetailView:
             receiving: (*(f"{hostname}." for hostname in settings.DNS_MX_HOSTNAMES),),
             reporting: (
                 domain.dmarc_record,
-                domain.mta_sts_record,
+                domain.mta_sts_record_cname_target,
                 domain.mta_sts_cname_target,
-                domain.tls_rpt_record,
+                domain.tls_rpt_record_cname_target,
             ),
         }
         for tab, records in tabs.items():
@@ -498,9 +523,9 @@ class TestDomainZoneFileView:
 
         content = response.content.decode()
         assert f'_dmarc IN TXT "{domain.dmarc_record}"' in content
-        assert f'_mta-sts IN TXT "{domain.mta_sts_record}"' in content
+        assert f"_mta-sts IN CNAME {domain.mta_sts_record_cname_target}." in content
         assert f"mta-sts IN CNAME {domain.mta_sts_cname_target}." in content
-        assert f'_smtp._tls IN TXT "{domain.tls_rpt_record}"' in content
+        assert f"_smtp._tls IN CNAME {domain.tls_rpt_record_cname_target}." in content
 
     def test_get__not_found_for_unknown_group(self, admin_client, org):
         domain = Domain.objects.create(name="example.com", org=org)

@@ -92,9 +92,11 @@ The platform operator must set up the following records on the
 6. **SPF include**. The `spf.{platform_domain}` TXT record must list the
    SMTP server IP addresses.
 7. **DMARC**. `_dmarc.{platform_domain}` TXT record.
-8. **MTA-STS**. `_mta-sts.{platform_domain}` TXT record and
-   `mta-sts.{platform_domain}` CNAME.
-9. **TLS-RPT**. `_smtp._tls.{platform_domain}` TXT record.
+8. **MTA-STS**. `_mta-sts.{platform_domain}` CNAME and
+   `mta-sts.{platform_domain}` CNAME, both pointing into the sender
+   subdomain.
+9. **TLS-RPT**. `_smtp._tls.{platform_domain}` CNAME pointing into the
+   sender subdomain.
 
 All per-org records (MX, SPF, DKIM, DMARC, TLS-RPT, MTA-STS) for managed
 domains are served automatically by the internal nameserver. No

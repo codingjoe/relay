@@ -243,6 +243,7 @@ class TestResolve:
             (domain.dmarc_record_name, domain.dmarc_record),
             (f"_dmarc.{domain.sender_domain}", domain.sender_dmarc_record),
             (f"_mta-sts.{domain.name}", domain.mta_sts_record),
+            (f"_mta-sts.{domain.sender_domain}", domain.mta_sts_record),
             (f"_smtp._tls.{domain.name}", domain.tls_rpt_record),
             (f"_smtp._tls.{domain.sender_domain}", domain.tls_rpt_record),
         ]

@@ -24,7 +24,7 @@ MTA-STS is the email equivalent of HTTP Strict Transport Security (HSTS).[^hsts]
 
 ## How MTA-STS works
 
-MTA-STS has three components. A DNS TXT record at `_mta-sts.<domain>` holds a policy ID. When you change the policy, you update this ID so senders fetch the new file. A policy file, served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`, sets the TLS mode and the valid MX hosts. A CNAME record for `mta-sts.<domain>` points to the host that serves that file.
+MTA-STS has three components. A DNS TXT record at `_mta-sts.<domain>` holds a policy ID. When you change the policy, you update this ID so senders fetch the new file. The record may instead be a CNAME to the provider that maintains it. A policy file, served over HTTPS at `https://mta-sts.<domain>/.well-known/mta-sts.txt`, sets the TLS mode and the valid MX hosts. A CNAME record for `mta-sts.<domain>` points to the host that serves that file.
 
 ### The policy file
 
@@ -55,8 +55,10 @@ In `enforce` mode, the sending server validates the TLS certificate of the recei
 
 1. Create a policy file that lists your valid MX hosts and the enforcement mode.
 2. Serve the policy file over HTTPS at `mta-sts.<domain>/.well-known/mta-sts.txt`.
-3. Publish a TXT record at `_mta-sts.<domain>` with a unique policy ID.
+3. Publish a TXT record at `_mta-sts.<domain>` with a unique policy ID, or publish a CNAME to the provider's `_mta-sts` record and let the provider maintain the ID.
 4. Publish a CNAME record for `mta-sts.<domain>` that points to the host that serves the policy file.
+
+RFC 8461 Section 8.2 calls the CNAME approach policy delegation. It lets the provider update the policy ID without an edit in your zone. A CNAME cannot coexist with a TXT record at the same name, so delete an existing TXT before you add the CNAME.
 
 Start with `mode: testing` and monitor the reports. Then switch to `mode: enforce` once you confirm that all senders can connect with TLS.
 

@@ -38,8 +38,8 @@ def build_zone_file(domain, group, nameservers, mx_hostnames, mx_priority):
                 (relative(domain.dmarc_record_name), "TXT", txt(domain.dmarc_record)),
                 (
                     relative(domain.mta_sts_record_name),
-                    "TXT",
-                    txt(domain.mta_sts_record),
+                    "CNAME",
+                    f"{domain.mta_sts_record_cname_target}.",
                 ),
                 (
                     relative(domain.mta_sts_hostname),
@@ -48,8 +48,8 @@ def build_zone_file(domain, group, nameservers, mx_hostnames, mx_priority):
                 ),
                 (
                     relative(domain.tls_rpt_record_name),
-                    "TXT",
-                    txt(domain.tls_rpt_record),
+                    "CNAME",
+                    f"{domain.tls_rpt_record_cname_target}.",
                 ),
             ]
         case _:

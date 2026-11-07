@@ -39,7 +39,7 @@ The TLS-RPT process has three steps:
 
 ### The DNS record
 
-TLS-RPT uses a TXT record at `_smtp._tls.<domain>`. The record contains:
+TLS-RPT uses a TXT record at `_smtp._tls.<domain>`. The name may be a CNAME to a TXT record maintained by your provider. Standard DNS resolvers follow the CNAME, so senders see the same record. The record contains:
 
 | Tag   | Purpose            | Example                                                              |
 | ----- | ------------------ | -------------------------------------------------------------------- |
@@ -75,9 +75,11 @@ The report specifies one of these failure reasons:
 
 ## How to set up TLS-RPT
 
-1. Publish a TXT record at `_smtp._tls.<domain>`.
+1. Publish a TXT record at `_smtp._tls.<domain>`, or a CNAME to the provider's `_smtp._tls` record.
 2. Set the `rua` tag to the email address or HTTPS endpoint that receives the reports.
 3. Configure the endpoint to collect and store the JSON reports.
+
+A CNAME cannot coexist with a TXT record at the same name. Delete an existing TXT before you add the CNAME.
 
 The reports show which senders had TLS failures and the reason for each failure. Monitor the reports to find certificate and protocol issues before they affect your users.
 

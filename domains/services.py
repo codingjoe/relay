@@ -186,10 +186,10 @@ def check_mta_sts(domain):
             )
             if value.startswith("v=STSv1;"):
                 candidate_records.append(value)
-        if (
-            len(candidate_records) != 1
-            or parse_mta_sts_txt_record(candidate_records[0]) is None
-        ):
+        if len(candidate_records) != 1:
+            return False
+        tags = parse_mta_sts_txt_record(candidate_records[0])
+        if tags is None or tags["id"] != domain.mta_sts_policy_id:
             return False
 
         cname_records = dns.resolver.resolve(domain.mta_sts_hostname, "CNAME")
@@ -207,27 +207,28 @@ def check_tls_rpt(domain):
         txt_records = dns.resolver.resolve(domain.tls_rpt_record_name, "TXT")
     except dns.exception.DNSException:
         return False
-    expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
+    candidate_records = []
     for txt_record in txt_records:
         value = "".join(
             string.decode() if isinstance(string, bytes) else string
             for string in txt_record.strings
         )
-        fields = [field.strip() for field in value.split(";")]
-        match fields:
-            case [version, *tag_fields] if version.lower() == "v=tlsrptv1":
-                tags = {}
-                for field in tag_fields:
-                    if "=" in field:
-                        tag_name, tag_value = field.split("=", 1)
-                        tags[tag_name.strip().lower()] = tag_value.strip()
-                reporting_uris = {
-                    uri.strip().lower().split("!", 1)[0]
-                    for uri in tags.get("rua", "").split(",")
-                }
-                if expected_reporting_uri in reporting_uris:
-                    return True
-    return False
+        if value.startswith("v=TLSRPTv1;"):
+            candidate_records.append(value)
+    if len(candidate_records) != 1:
+        return False
+    tags = {}
+    for field in candidate_records[0].split(";")[1:]:
+        name, separator, tag_value = field.partition("=")
+        if separator:
+            tags[name.strip().lower()] = tag_value.strip()
+    expected_reporting_uri = f"mailto:{domain.tls_reporting_address}".lower()
+    reporting_uris = {
+        uri.strip().lower().split("!", 1)[0]
+        for uri in tags.get("rua", "").split(",")
+        if uri.strip()
+    }
+    return expected_reporting_uri in reporting_uris
 
 
 def verify_domain_dns(domain):

@@ -64,21 +64,25 @@ TLS-RPT records for your domains, which asks all senders to use TLS as well.
 
 ## The MTA-STS policy
 
-For every managed or delegated domain, relay serves the DNS record and the
+For every managed or delegated domain, relay serves the DNS values and the
 policy file:
 
-- the TXT record at `_mta-sts.{your-domain}` carrying the policy id that
-  matches the policy host,
+- a CNAME at `_mta-sts.{your-domain}` to
+  `_mta-sts.mail.relay.{your-domain}`, which delegates the policy id TXT
+  record to relay,
 - a CNAME at `mta-sts.{your-domain}` to `mta-sts.mail.relay.{your-domain}`,
+- a CNAME at `_smtp._tls.{your-domain}` to
+  `_smtp._tls.mail.relay.{your-domain}`, which delegates the TLS-RPT record
+  to relay,
 - the policy document at
   `https://mta-sts.{your-domain}/.well-known/mta-sts.txt`.
 
-For a delegated domain, the CNAME target sits in the sender subdomain that
-you delegate to relay, so the relay nameserver answers it. The dashboard
-shows the single CNAME that points at it. relay serves the policy over
-HTTPS and issues the certificate for `mta-sts.{your-domain}` on the first
-fetch. You do not configure a certificate yourself. Managed domains need
-no action: relay hosts the whole zone, so it serves the policy host and the
+For a delegated domain, the CNAME targets sit in the sender subdomain that
+you delegate to relay, so the relay nameserver answers them. The dashboard
+shows the CNAMEs that point into it. relay serves the policy over HTTPS and
+issues the certificate for `mta-sts.{your-domain}` on the first fetch. You
+do not configure a certificate yourself. Managed domains need no action:
+relay hosts the whole zone, so it serves the policy host and the
 certificate as well.
 
 The policy document sets `mode: enforce`, a max-age of 7 days, and the relay
