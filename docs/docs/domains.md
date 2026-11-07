@@ -89,8 +89,8 @@ and three tabs:
   hardening.
 - Receiving: the MX record at the root.
 - Reporting: the DMARC record with relay reporting addresses, the MTA-STS
-  TXT and CNAME records with live MX hosts matching the policy, and the
-  TLS-RPT record with the relay reporting address.
+  CNAMEs with live MX hosts matching the policy, and the TLS-RPT CNAME
+  pointing at the relay collector.
 
 The delegation check counts toward both sending and reporting readiness.
 Publish the delegation and the sending records and the domain shows sending
@@ -115,9 +115,11 @@ For a delegated domain the authoritative nameserver answers:
 | `acme.com`                                | TXT   | root SPF include of the sender subdomain           |
 | `_dmarc.acme.com`                         | TXT   | DMARC with relay reporting addresses               |
 | `_dmarc.mail.relay.acme.com`              | TXT   | per-subdomain DMARC record                         |
-| `_mta-sts.acme.com`                       | TXT   | `v=STSv1` policy id                                |
+| `_mta-sts.acme.com`                       | CNAME | `_mta-sts.mail.relay.acme.com`                     |
+| `_mta-sts.mail.relay.acme.com`            | TXT   | `v=STSv1` policy id                                |
 | `mta-sts.acme.com`                        | CNAME | `mta-sts.mail.relay.acme.com`                      |
-| `_smtp._tls...`                           | TXT   | TLS-RPT with the relay collector                   |
+| `_smtp._tls.acme.com`                     | CNAME | `_smtp._tls.mail.relay.acme.com`                   |
+| `_smtp._tls.mail.relay.acme.com`          | TXT   | TLS-RPT with the relay collector                   |
 | `mail.relay.acme.com`                     | NS    | the relay nameservers                              |
 
 The dashboard always shows the current record set with concrete names and
@@ -128,6 +130,13 @@ in the sender subdomain `mail.relay.acme.com`, which the relay nameserver
 already serves. relay serves the policy over HTTPS and issues the
 certificate for `mta-sts.acme.com` on the first fetch. You add no record
 and no certificate for that name.
+
+The `_mta-sts` and `_smtp._tls` CNAMEs delegate the TXT values to relay.
+Their targets sit in the sender subdomain, so relay answers the policy id
+and the TLS-RPT reporting address. A policy change needs no edit at your
+apex. If you previously published either TXT record, delete it before
+adding the CNAME, because a CNAME cannot coexist with other records at the
+same name.
 
 The policy lists the MX record hostnames by default. If the domain receives
 mail through another provider, edit the MTA-STS MX hosts on the domain page.
@@ -146,14 +155,15 @@ the acceptance flow.
 
 ## Troubleshooting
 
-| Symptom                                             | Likely cause                                              | Fix                                                           |
-| --------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------- |
-| NS check fails                                      | Delegation missing or typo in the NS records              | Publish the NS records from the dashboard instruction         |
-| DKIM CNAME check fails                              | CNAME not published yet or typo                           | Copy the selector names exactly                               |
-| DMARC check fails                                   | No `v=DMARC1` at the root, or missing relay `rua`/`ruf`   | Publish the shown record with both reporting addresses        |
-| MTA-STS check fails                                 | TXT or CNAME wrong, or an MX record is outside the policy | Publish both records and list the live MX hosts in the policy |
-| TXT merge needed                                    | Multiple TXT entries at the same name                     | One entry per value, quoted as shown                          |
-| Verification stays pending shortly after publishing | DNS caching                                               | Check again after the TTL of your zone                        |
+| Symptom                                             | Likely cause                                            | Fix                                                          |
+| --------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| NS check fails                                      | Delegation missing or typo in the NS records            | Publish the NS records from the dashboard instruction        |
+| DKIM CNAME check fails                              | CNAME not published yet or typo                         | Copy the selector names exactly                              |
+| DMARC check fails                                   | No `v=DMARC1` at the root, or missing relay `rua`/`ruf` | Publish the shown record with both reporting addresses       |
+| MTA-STS check fails                                 | CNAME wrong, or an MX record is outside the policy      | Publish both CNAMEs and list the live MX hosts in the policy |
+| TLS-RPT check fails                                 | CNAME missing or wrong                                  | Publish the `_smtp._tls` CNAME from the dashboard            |
+| TXT merge needed                                    | Multiple TXT entries at the same name                   | One entry per value, quoted as shown                         |
+| Verification stays pending shortly after publishing | DNS caching                                             | Check again after the TTL of your zone                       |
 
 ## Related pages
 

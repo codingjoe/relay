@@ -125,7 +125,7 @@ class DNSResolver(BaseResolver):
         query_name: str,
         domain: Domain,
     ) -> Iterator[RR]:
-        """Build TXT records for SPF, DKIM, DMARC, and TLS-RPT."""
+        """Build TXT records for SPF, DKIM, DMARC, MTA-STS, and TLS-RPT."""
         # Records served for all domains (managed and org-owned)
         match query_name:
             case name if name == domain.sender_domain:
@@ -139,14 +139,17 @@ class DNSResolver(BaseResolver):
                     rdata=txt(domain.dmarc_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == domain.mta_sts_record_name:
+            case name if name in (
+                domain.mta_sts_record_name,
+                domain.mta_sts_record_cname_target,
+            ):
                 yield RR(
                     qname,
                     QTYPE.TXT,
                     rdata=txt(domain.mta_sts_record),
                     ttl=self.RECORD_TTL,
                 )
-            case name if name == f"_smtp._tls.{domain.sender_domain}":
+            case name if name == domain.tls_rpt_record_cname_target:
                 yield RR(
                     qname,
                     QTYPE.TXT,

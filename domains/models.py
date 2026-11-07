@@ -433,13 +433,18 @@ class Domain(TimeStamped):
 
     @property
     def tls_rpt_record_name(self):
-        """Return the TXT record name at the root domain."""
+        """Return the TLS-RPT record name at the root domain."""
         return f"_smtp._tls.{self.name}"
 
     @property
     def tls_rpt_record(self):
-        """Return the TLS-RPT record with rua pointing to the sender subdomain."""
+        """Return the TLS-RPT TXT value with rua pointing to the sender subdomain."""
         return f"v=TLSRPTv1;rua=mailto:{self.tls_reporting_address}"
+
+    @property
+    def tls_rpt_record_cname_target(self):
+        """Return the target of the TLS-RPT CNAME inside the sender subdomain."""
+        return f"_smtp._tls.{self.sender_domain}"
 
     @property
     def sender_dmarc_record(self):
@@ -473,6 +478,11 @@ class Domain(TimeStamped):
     def mta_sts_record(self):
         """Return the MTA-STS DNS record for _mta-sts.{domain}."""
         return f"v=STSv1; id={self.mta_sts_policy_id}"
+
+    @property
+    def mta_sts_record_cname_target(self):
+        """Return the target of the MTA-STS CNAME inside the sender subdomain."""
+        return f"_mta-sts.{self.sender_domain}"
 
     @property
     def mta_sts_hostname(self):

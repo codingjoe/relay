@@ -252,7 +252,7 @@ class TestCheckMtaSts:
         return domain
 
     def test_check_mta_sts__requires_txt_and_expected_cname(self, domain, dns_resolver):
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -261,9 +261,42 @@ class TestCheckMtaSts:
 
         assert check_mta_sts(domain) is True
 
+    def test_check_mta_sts__follows_delegated_txt_cname(self, domain, dns_resolver):
+        dns_resolver.add(
+            f"_mta-sts.{domain.name}",
+            "CNAME",
+            f"{domain.mta_sts_record_cname_target}.",
+        )
+        dns_resolver.add(
+            domain.mta_sts_record_cname_target,
+            "TXT",
+            f'"{domain.mta_sts_record}"',
+        )
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+
+        assert check_mta_sts(domain) is True
+
+    def test_check_mta_sts__rejects_stale_policy_id(self, domain, dns_resolver):
+        dns_resolver.add(
+            f"_mta-sts.{domain.name}",
+            "TXT",
+            '"v=STSv1; id=stale"',
+        )
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
+
+        assert check_mta_sts(domain) is False
+
     def test_check_mta_sts__rejects_missing_mx(self, domain, dns_resolver):
         dns_resolver.fail(domain.name, "MX", dns.resolver.NXDOMAIN())
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -274,7 +307,7 @@ class TestCheckMtaSts:
 
     def test_check_mta_sts__rejects_unlisted_mx(self, domain, dns_resolver):
         dns_resolver.add(domain.name, "MX", "10 mx.other.com.")
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -291,7 +324,7 @@ class TestCheckMtaSts:
             "10 mx1.other.com.",
             "20 mail.mx2.other.com.",
         )
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -305,7 +338,7 @@ class TestCheckMtaSts:
     ):
         domain.mta_sts_mx_hostnames = ["*.other.com"]
         dns_resolver.add(domain.name, "MX", "10 foo.bar.other.com.")
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -318,7 +351,7 @@ class TestCheckMtaSts:
         dns_resolver.add(
             f"_mta-sts.{domain.name}",
             "TXT",
-            '"v=STSv1; " "id=test"',
+            f'"v=STSv1; " "id={domain.mta_sts_policy_id}"',
         )
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -329,7 +362,7 @@ class TestCheckMtaSts:
         assert check_mta_sts(domain) is True
 
     def test_check_mta_sts__rejects_other_cname(self, domain, dns_resolver):
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -390,7 +423,7 @@ class TestCheckMtaSts:
             f"_mta-sts.{domain.name}",
             "TXT",
             '"unrelated=value"',
-            '"v=STSv1; id=test; extension=value;"',
+            f'"v=STSv1; id={domain.mta_sts_policy_id}; extension=value;"',
         )
         dns_resolver.add(
             f"mta-sts.{domain.name}",
@@ -409,17 +442,22 @@ class TestCheckMtaSts:
             '"v=STSv1; id=first"',
             '"v=STSv1; id=second"',
         )
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
 
         assert check_mta_sts(domain) is False
 
     @pytest.mark.parametrize(
         "record",
         [
-            "v=STSv1; ID=test",
-            "v=STSv1; id=first; id=second",
-            "v=STSv1; id=test; malformed",
-            "v=STSv1; id=test; invalid name=value",
-            "v=STSv1; id=test; extension=contains:semicolon",
+            "v=STSv1; ID={id}",
+            "v=STSv1; id={id}; id=second",
+            "v=STSv1; id={id}; malformed",
+            "v=STSv1; id={id}; invalid name=value",
+            "v=STSv1; id={id}; extension=contains; not-a-field",
         ],
     )
     def test_check_mta_sts__rejects_malformed_tags(
@@ -428,13 +466,50 @@ class TestCheckMtaSts:
         dns_resolver,
         record,
     ):
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{record}"')
+        dns_resolver.add(
+            f"_mta-sts.{domain.name}",
+            "TXT",
+            f'"{record.format(id=domain.mta_sts_policy_id)}"',
+        )
+        dns_resolver.add(
+            f"mta-sts.{domain.name}",
+            "CNAME",
+            f"mta-sts.{domain.sender_domain}.",
+        )
 
         assert check_mta_sts(domain) is False
 
 
 @pytest.mark.django_db
 class TestCheckTlsRpt:
+    def test_check_tls_rpt__follows_delegated_txt_cname(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(
+            f"_smtp._tls.{domain.name}",
+            "CNAME",
+            f"{domain.tls_rpt_record_cname_target}.",
+        )
+        dns_resolver.add(
+            domain.tls_rpt_record_cname_target,
+            "TXT",
+            f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
+        )
+
+        assert check_tls_rpt(domain) is True
+
+    def test_check_tls_rpt__rejects_multiple_candidate_records(self, dns_resolver):
+        org = Organization.objects.create(slug="o")
+        domain = Domain.objects.create(name="example.com", org=org)
+        dns_resolver.add(
+            f"_smtp._tls.{domain.name}",
+            "TXT",
+            '"v=TLSRPTv1;rua=mailto:other@example.com"',
+            f'"v=TLSRPTv1;rua=mailto:{domain.tls_reporting_address}"',
+        )
+
+        assert check_tls_rpt(domain) is False
+
     def test_check_tls_rpt__accepts_matching_uri_with_size_limit(self, dns_resolver):
         org = Organization.objects.create(slug="o")
         domain = Domain.objects.create(name="example.com", org=org)
@@ -545,7 +620,7 @@ class TestVerifyDomainDns:
             cname_name, target = domain.dkim_cnames[field]
             dns_resolver.add(cname_name, "CNAME", f"{target}.")
         dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{domain.dmarc_record}"')
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
@@ -698,7 +773,7 @@ class TestVerifyDomainDns:
             cname_name, target = domain.dkim_cnames[field]
             dns_resolver.add(cname_name, "CNAME", f"{target}.")
         dns_resolver.add(domain.dmarc_record_name, "TXT", f'"{domain.dmarc_record}"')
-        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", '"v=STSv1; id=test"')
+        dns_resolver.add(f"_mta-sts.{domain.name}", "TXT", f'"{domain.mta_sts_record}"')
         dns_resolver.add(
             f"mta-sts.{domain.name}",
             "CNAME",
