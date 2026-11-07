@@ -76,7 +76,7 @@ dev: build-image start-cluster load-image migrate
 # runtime is ignored by the reloader, which would otherwise restart the server
 # and invalidate the access tokens on every request that stores a row.
 [group('local')]
-serve:
+serve: create-venv
     #!/usr/bin/env bash
     set -euo pipefail
     port="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
@@ -86,9 +86,19 @@ serve:
         --reload-ignore-dirs storage --reload-ignore-dirs staticfiles \
         root.dev:application
 
+# Create a relocatable venv, because the app reuses and moves worktrees.
+[group('quality')]
+create-venv:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f .venv/pyvenv.cfg ] && grep -q '^relocatable *= *true' .venv/pyvenv.cfg; then
+        exit 0
+    fi
+    uv venv --relocatable --clear
+
 # Install the binaries, the dependencies and the git hooks.
 [group('quality')]
-install: install-binaries
+install: install-binaries create-venv
     uv sync
     pnpm install
     uvx prek install
@@ -144,7 +154,7 @@ watch-assets:
 
 # Run the test suite.
 [group('quality')]
-test:
+test: create-venv
     uv run --group test pytest
 
 # Run the Django system checks.
